@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Lock, Save, ShieldCheck } from 'lucide-react'
-import { loadDb } from '@/services/mockDb'
 import * as meetingService from '@/services/meetingService'
 import { useAuthStore } from '@/store/authStore'
 import {
@@ -13,6 +12,7 @@ import {
 } from '@/utils/meetingPermissions'
 import { MINUTE_FIELD_GROUPS } from '@/features/meetings/minuteFieldConfig'
 import type { Meeting, MeetingMinutes, User } from '@/types'
+import { useUsersQuery } from '@/hooks/useUsersQuery'
 
 function toLocalInput(iso: string) {
   const d = new Date(iso)
@@ -24,7 +24,8 @@ export function MeetingDetailPage() {
   const { meetingId } = useParams<{ meetingId: string }>()
   const user = useAuthStore((s) => s.user)
   const qc = useQueryClient()
-  const db = loadDb()
+  const usersQuery = useUsersQuery()
+  const users = usersQuery.data ?? []
 
   const q = useQuery({
     queryKey: ['meeting', meetingId],
@@ -110,8 +111,12 @@ export function MeetingDetailPage() {
 
   if (!meetingId || !user) return null
 
-  if (q.isLoading) {
+  if (q.isLoading || usersQuery.isLoading) {
     return <p className="text-sm text-slate-500">Đang tải biên bản…</p>
+  }
+
+  if (q.isError || usersQuery.isError) {
+    return <p className="text-sm text-red-600">Không tải được dữ liệu biên bản.</p>
   }
 
   if (q.data == null) {
@@ -128,7 +133,7 @@ export function MeetingDetailPage() {
 
   const dis = !canEdit
 
-  const uMap = new Map(db.users.map((u: User) => [u.id, u]))
+  const uMap = new Map(users.map((u: User) => [u.id, u]))
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-8">
@@ -270,9 +275,9 @@ export function MeetingDetailPage() {
                 setDraft((p) => (p ? { ...p, chairId: e.target.value } : p))
               }
             >
-              {db.users
+              {users
                 .filter((u) =>
-                  ['director', 'vice_director', 'department_head'].includes(
+                  ['r-director', 'r-vice-director', 'r-dept-head'].includes(
                     u.role,
                   ),
                 )
@@ -293,10 +298,10 @@ export function MeetingDetailPage() {
                 setDraft((p) => (p ? { ...p, secretaryId: e.target.value } : p))
               }
             >
-              {db.users
+              {users
                 .filter(
                   (u) =>
-                    u.role === 'staff' || u.role === 'department_head',
+                    u.role === 'r-staff' || u.role === 'r-dept-head',
                 )
                 .map((u) => (
                   <option key={u.id} value={u.id}>

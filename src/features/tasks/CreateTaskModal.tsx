@@ -3,9 +3,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import type { TaskPriority, User } from '@/types'
 import { Modal } from '@/components/Modal'
-import { loadDb } from '@/services/mockDb'
 import { useAuthStore } from '@/store/authStore'
 import { useTaskStore } from '@/store/taskStore'
+import { useUsersQuery } from '@/hooks/useUsersQuery'
+import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
 import { canAssignTo, deadlineAfterParent } from '@/utils/taskRules'
 import {
   canCreateTask,
@@ -69,8 +70,10 @@ export function CreateTaskModal({
   const user = useAuthStore((s) => s.user)
   const createTask = useTaskStore((s) => s.createTask)
   const tasks = useTaskStore((s) => s.tasks)
-
-  const db = loadDb()
+  const usersQuery = useUsersQuery()
+  const departmentsQuery = useDepartmentsQuery()
+  const users = usersQuery.data ?? []
+  const departments = departmentsQuery.data ?? []
 
   // ── core fields ──────────────────────────────────────────
   const [title, setTitle] = useState('')
@@ -86,9 +89,7 @@ export function CreateTaskModal({
 
   // ── hierarchy fields ─────────────────────────────────────
   /** Khoa chính phụ trách */
-  const [departmentId, setDepartmentId] = useState(
-    user?.departmentId ?? db.departments[0]?.id ?? '',
-  )
+  const [departmentId, setDepartmentId] = useState(user?.departmentId ?? '')
   /** Người được giao (PGĐ / Trưởng khoa / NV) */
   const [assigneeId, setAssigneeId] = useState<string | null>(null)
   /** Thường trực phụ trách */
@@ -114,7 +115,10 @@ export function CreateTaskModal({
     const d = new Date()
     d.setDate(d.getDate() + 14)
     setDeadline(d.toISOString().slice(0, 10))
-  }, [open, defaultParentId])
+
+    const defaultDept = user?.departmentId ?? departments[0]?.id ?? ''
+    setDepartmentId(defaultDept)
+  }, [open, defaultParentId, user?.departmentId, departments])
 
   // ── derived ──────────────────────────────────────────────
   const parentOptions = useMemo(
@@ -130,24 +134,9 @@ export function CreateTaskModal({
   /** Candidates user có thể giao việc (1 cấp dưới) */
   const assignCandidates = useMemo<User[]>(() => {
     if (!user) return []
-    return db.users.filter((u) => u.id !== user.id && canAssignTo(user, u))
-  }, [db.users, user])
+    return users.filter((u) => u.id !== user.id && canAssignTo(user, u))
+  }, [users, user])
 
-  /** Candidates cho "thường trực" — ngang cấp hoặc dưới người được giao */
-  const thuongTrucCandidates = useMemo<User[]>(() => {
-    if (!user) return []
-    const assignee = assigneeId
-      ? db.users.find((u) => u.id === assigneeId)
-      : null
-    // Nếu đã chọn người được giao → thường trực phải <= cấp người được giao
-    return db.users.filter((u) => {
-      if (u.id === user.id) return false
-      if (assignee && canAssignTo(assignee, u) && u.id !== assignee.id)
-        return true
-      if (!assignee && canAssignTo(user, u) && u.id !== user.id) return true
-      return false
-    })
-  }, [db.users, user, assigneeId])
 
   const assignee = assignCandidates.find((u) => u.id === assigneeId) ?? null
   const assignBlocked =
@@ -179,18 +168,13 @@ export function CreateTaskModal({
       toast.error('Hạn không được sau hạn công việc cha')
       return
     }
-    const vice = db.users.find(
-      (u) =>
-        u.role === 'vice_director' &&
-        (u.managedDepartmentIds?.includes(departmentId) ?? false),
-    )
     try {
       await createTask({
         title: title.trim(),
         parentId,
         departmentId,
         assigneeId,
-        overseenByViceDirectorId: vice?.id ?? null,
+        overseenByViceDirectorId: null,
         createdById: user.id,
         assignedById: user.id,
         priority,
@@ -233,10 +217,26 @@ export function CreateTaskModal({
   // ── role label ───────────────────────────────────────────
   const assigneeLabel = (() => {
     if (!user) return 'Giao cho'
-    if (user.role === 'director') return 'PGĐ phụ trách'
-    if (user.role === 'vice_director') return 'Trưởng khoa nhận việc'
+    if (user.role === 'r-director') return 'PGĐ phụ trách'
+    if (user.role === 'r-vice-director') return 'Trưởng khoa nhận việc'
     return 'Nhân viên phụ trách'
   })()
+
+  if (usersQuery.isLoading || departmentsQuery.isLoading) {
+    return (
+      <Modal open={open} onClose={onClose} title="Tạo công việc" size="sm">
+        <p className="text-sm text-slate-600">Đang tải dữ liệu tạo công việc…</p>
+      </Modal>
+    )
+  }
+
+  if (usersQuery.isError || departmentsQuery.isError) {
+    return (
+      <Modal open={open} onClose={onClose} title="Tạo công việc" size="sm">
+        <p className="text-sm text-red-600">Không tải được dữ liệu người dùng/khoa phòng.</p>
+      </Modal>
+    )
+  }
 
   return (
     <Modal open={open} onClose={onClose} title="Tạo công việc" size="lg">
@@ -248,11 +248,11 @@ export function CreateTaskModal({
           (trừ Giám đốc: xem toàn bộ). Bạn đang tạo với vai trò{' '}
           <strong>
             {user?.title ??
-              (user?.role === 'director'
+              (user?.role === 'r-director'
                 ? 'Giám đốc'
-                : user?.role === 'vice_director'
+                : user?.role === 'r-vice-director'
                   ? 'Phó Giám đốc'
-                  : user?.role === 'department_head'
+                  : user?.role === 'r-dept-head'
                     ? 'Trưởng khoa'
                     : 'Nhân viên')}
           </strong>
@@ -348,7 +348,7 @@ export function CreateTaskModal({
                   )
                 }}
               >
-                {db.departments.map((d) => (
+                {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
                   </option>
@@ -392,8 +392,8 @@ export function CreateTaskModal({
               onChange={(e) => setThuongTrucId(e.target.value || null)}
             >
               <option value="">— Không chỉ định —</option>
-              {db.users
-                .filter((u) => u.id !== user?.id)
+              {assignCandidates
+                .filter((u) => !assigneeId || u.id !== assigneeId)
                 .map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -410,7 +410,7 @@ export function CreateTaskModal({
               <span className="text-xs text-slate-400">(chọn nhiều)</span>
             </p>
             <div className="flex flex-wrap gap-2">
-              {db.departments
+              {departments
                 .filter((d) => d.id !== departmentId)
                 .map((d) => {
                   const checked = boPhanPhoiHopIds.includes(d.id)
@@ -430,7 +430,7 @@ export function CreateTaskModal({
                     </button>
                   )
                 })}
-              {db.departments.filter((d) => d.id !== departmentId).length ===
+              {departments.filter((d) => d.id !== departmentId).length ===
                 0 && (
                 <span className="text-xs text-slate-400">
                   Không có khoa khác để chọn.

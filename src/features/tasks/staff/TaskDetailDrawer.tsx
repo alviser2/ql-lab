@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import type { Task, TaskStatus, User } from '@/types'
 import { useAuthStore } from '@/store/authStore'
-import { loadDb } from '@/services/mockDb'
-import { canAssignTo } from '@/utils/taskRules'
-import { taskProgress } from '@/utils/taskHierarchy'
+import { canAssignTo, canSetCompletedFromStatus } from '@/utils/taskRules'
+import { taskProgress, canMarkTaskComplete } from '@/utils/taskHierarchy'
 import { Drawer } from '@/components/Drawer'
 import { StatusBadge } from '@/components/StatusBadge'
 import { PriorityTag } from '@/components/PriorityTag'
@@ -13,12 +12,10 @@ import { UserAvatar } from '@/components/UserAvatar'
 import * as taskService from '@/services/taskService'
 import { useTaskStore } from '@/store/taskStore'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  canMarkTaskComplete,
-  canSetCompletedFromStatus,
-} from '@/utils/taskRules'
+
 import { QuickReportModal } from '@/features/tasks/staff/QuickReportModal'
 import { cn } from '@/utils/cn'
+import { useUsersQuery } from '@/hooks/useUsersQuery'
 
 const nextActions: { label: string; to: TaskStatus; from: TaskStatus[] }[] = [
   { label: 'Bắt đầu làm', to: 'IN_PROGRESS', from: ['NEW'] },
@@ -46,6 +43,8 @@ export function TaskDetailDrawer({
   const fetchTasks = useTaskStore((s) => s.fetchTasks)
   const assignTask = useTaskStore((s) => s.assignTask)
   const me = useAuthStore((s) => s.user)
+  const usersQuery = useUsersQuery()
+  const users = usersQuery.data ?? []
   const [reportOpen, setReportOpen] = useState(false)
 
   if (!task) return null
@@ -60,24 +59,26 @@ export function TaskDetailDrawer({
     current.assignedById ?? current.createdById,
   )
 
-  const db = loadDb()
-  const assignOptions =
-    me &&
-    (me.role === 'director' ||
-      me.role === 'vice_director' ||
-      me.role === 'department_head')
-      ? db.users.filter((u) => {
-          if (!canAssignTo(me, u)) return false
-          if (me.role === 'director') return true
-          if (me.role === 'department_head') {
-            return u.departmentId === current.departmentId
-          }
-          return (
-            u.departmentId === current.departmentId &&
-            (me.managedDepartmentIds?.includes(current.departmentId) ?? false)
-          )
-        })
-      : []
+  const assignOptions = useMemo(
+    () =>
+      me &&
+      (me.role === 'r-director' ||
+        me.role === 'r-vice-director' ||
+        me.role === 'r-dept-head')
+        ? users.filter((u) => {
+            if (!canAssignTo(me, u)) return false
+            if (me.role === 'r-director') return true
+            if (me.role === 'r-dept-head') {
+              return u.departmentId === current.departmentId
+            }
+            return (
+              u.departmentId === current.departmentId &&
+              (me.managedDepartmentIds?.includes(current.departmentId) ?? false)
+            )
+          })
+        : [],
+    [me, users, current.departmentId],
+  )
 
   const prog = taskProgress(tasks, current.id)
   const imAssignee = me?.id === current.assigneeId
@@ -87,7 +88,7 @@ export function TaskDetailDrawer({
 
   async function setAssignee(id: string | null) {
     try {
-      await assignTask(current.id, id, me?.id ?? null)
+      await assignTask(current.id, id)
       await qc.invalidateQueries({ queryKey: ['tasks'] })
       await fetchTasks()
       toast.success('Đã cập nhật người thực hiện')
@@ -119,6 +120,12 @@ export function TaskDetailDrawer({
   return (
     <>
       <Drawer open={open} onClose={onClose} title="Chi tiết công việc">
+        {usersQuery.isLoading && (
+          <p className="text-sm text-slate-500">Đang tải dữ liệu người dùng…</p>
+        )}
+        {usersQuery.isError && (
+          <p className="text-sm text-red-600">Không tải được danh sách người dùng.</p>
+        )}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-slate-900">
             {current.title}

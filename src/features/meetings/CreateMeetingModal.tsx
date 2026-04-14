@@ -3,10 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Modal } from '@/components/Modal'
-import { loadDb } from '@/services/mockDb'
 import * as meetingService from '@/services/meetingService'
 import type { User } from '@/types'
 import { useAuthStore } from '@/store/authStore'
+import { useUsersQuery } from '@/hooks/useUsersQuery'
+import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
 
 export function CreateMeetingModal({
   open,
@@ -18,7 +19,10 @@ export function CreateMeetingModal({
   const user = useAuthStore((s) => s.user)
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const db = loadDb()
+  const usersQuery = useUsersQuery()
+  const departmentsQuery = useDepartmentsQuery()
+  const users = usersQuery.data ?? []
+  const departments = departmentsQuery.data ?? []
 
   const [title, setTitle] = useState(
     'Biên bản họp giao ban lãnh đạo',
@@ -35,23 +39,17 @@ export function CreateMeetingModal({
     const pad = (n: number) => String(n).padStart(2, '0')
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
   })
-  const [chairId, setChairId] = useState(
-    db.users.find((u) => u.role === 'director')?.id ?? '',
-  )
+  const [chairId, setChairId] = useState('')
   const [secretaryId, setSecretaryId] = useState('')
   const [departmentId, setDepartmentId] = useState<string | ''>('')
-  const [attendeeIds, setAttendeeIds] = useState<string[]>(() =>
-    db.users
-      .filter((u) => u.role === 'vice_director' || u.role === 'department_head')
-      .map((u) => u.id),
-  )
+  const [attendeeIds, setAttendeeIds] = useState<string[]>([])
 
   const secretaryCandidates = useMemo(
     () =>
-      db.users.filter(
-        (u) => u.role === 'staff' || u.role === 'department_head',
+      users.filter(
+        (u) => u.role === 'r-staff' || u.role === 'r-dept-head',
       ),
-    [db.users],
+    [users],
   )
 
   const mut = useMutation({
@@ -159,9 +157,9 @@ export function CreateMeetingModal({
               value={chairId}
               onChange={(e) => setChairId(e.target.value)}
             >
-              {db.users
+              {users
                 .filter((u) =>
-                  ['director', 'vice_director', 'department_head'].includes(
+                  ['r-director', 'r-vice-director', 'r-dept-head'].includes(
                     u.role,
                   ),
                 )
@@ -196,7 +194,7 @@ export function CreateMeetingModal({
             onChange={(e) => setDepartmentId(e.target.value)}
           >
             <option value="">Toàn bệnh viện</option>
-            {db.departments.map((d) => (
+            {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
               </option>
@@ -208,7 +206,7 @@ export function CreateMeetingModal({
             Thành phần tham dự
           </legend>
           <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
-            {db.users.map((u: User) => (
+            {users.map((u: User) => (
               <li key={u.id} className="flex items-center gap-2">
                 <input
                   id={`att-${u.id}`}

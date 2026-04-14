@@ -1,15 +1,17 @@
 import { useMemo } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { useTasksQuery } from '@/hooks/useTasksQuery'
-import { loadDb } from '@/services/mockDb'
 import { tasksVisibleForUser } from '@/utils/rbac'
 import { DepartmentKPI } from '@/features/kpi/DepartmentKPI'
 import { DepartmentBarChart } from '@/features/dashboard/DepartmentBarChart'
 import { KPIOverview } from '@/features/dashboard/KPIOverview'
+import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
 
 export function KPIPage() {
   const user = useAuthStore((s) => s.user)
   const { data: tasks = [] } = useTasksQuery()
+  const departmentsQuery = useDepartmentsQuery()
+  const departments = departmentsQuery.data ?? []
 
   const visible = useMemo(
     () => (user ? tasksVisibleForUser(user, tasks) : []),
@@ -18,9 +20,15 @@ export function KPIPage() {
 
   if (!user) return null
 
-  const db = loadDb()
+  if (departmentsQuery.isLoading) {
+    return <p className="text-sm text-slate-500">Đang tải dữ liệu KPI…</p>
+  }
 
-  if (user.role === 'staff') {
+  if (departmentsQuery.isError) {
+    return <p className="text-sm text-red-600">Không tải được dữ liệu khoa/phòng.</p>
+  }
+
+  if (user.role === 'r-staff') {
     const done = visible.filter((t) => t.status === 'COMPLETED').length
     return (
       <div className="mx-auto max-w-lg space-y-4 rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm">
@@ -39,8 +47,11 @@ export function KPIPage() {
     )
   }
 
-  if (user.role === 'department_head' && user.departmentId) {
-    const dept = db.departments.find((d) => d.id === user.departmentId)!
+  if (user.role === 'r-dept-head' && user.departmentId) {
+    const dept = departments.find((d) => d.id === user.departmentId)
+    if (!dept) {
+      return <p className="text-sm text-red-600">Không tìm thấy khoa của tài khoản hiện tại.</p>
+    }
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-slate-900">KPI khoa</h1>
@@ -50,8 +61,8 @@ export function KPIPage() {
     )
   }
 
-  if (user.role === 'vice_director') {
-    const depts = db.departments.filter((d) =>
+  if (user.role === 'r-vice-director') {
+    const depts = departments.filter((d) =>
       user.managedDepartmentIds?.includes(d.id),
     )
     return (
@@ -75,9 +86,9 @@ export function KPIPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-slate-900">KPI toàn hệ thống</h1>
       <KPIOverview tasks={tasks} />
-      <DepartmentBarChart departments={db.departments} tasks={tasks} />
+      <DepartmentBarChart departments={departments} tasks={tasks} />
       <div className="grid gap-6 lg:grid-cols-3">
-        {db.departments.map((d) => (
+        {departments.map((d) => (
           <DepartmentKPI
             key={d.id}
             department={d}

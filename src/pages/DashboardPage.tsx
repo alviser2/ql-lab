@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useTasksQuery } from '@/hooks/useTasksQuery'
-import { loadDb } from '@/services/mockDb'
 import { tasksVisibleForUser } from '@/utils/rbac'
 import { KPIOverview } from '@/features/dashboard/KPIOverview'
 import { HotspotList } from '@/features/dashboard/HotspotList'
@@ -13,18 +12,19 @@ import { ApprovalInbox } from '@/features/tasks/ApprovalInbox'
 import { KanbanBoard } from '@/features/tasks/Kanban/Board'
 import { MyTasks } from '@/features/tasks/staff/MyTasks'
 import { TaskDetailDrawer } from '@/features/tasks/staff/TaskDetailDrawer'
-import type { Task, User } from '@/types'
-
-function usersMap(): Map<string, User> {
-  const db = loadDb()
-  return new Map(db.users.map((u) => [u.id, u]))
-}
+import type { Task } from '@/types'
+import { useUsersQuery } from '@/hooks/useUsersQuery'
+import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const { data: tasks = [] } = useTasksQuery()
+  const usersQuery = useUsersQuery()
+  const departmentsQuery = useDepartmentsQuery()
+  const users = usersQuery.data ?? []
+  const departments = departmentsQuery.data ?? []
   const [detail, setDetail] = useState<Task | null>(null)
-  const uMap = useMemo(() => usersMap(), [])
+  const uMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users])
 
   const visible = useMemo(
     () => (user ? tasksVisibleForUser(user, tasks) : []),
@@ -33,7 +33,15 @@ export function DashboardPage() {
 
   if (!user) return null
 
-  if (user.role === 'director') {
+  if (usersQuery.isLoading || departmentsQuery.isLoading) {
+    return <p className="text-sm text-slate-500">Đang tải dashboard…</p>
+  }
+
+  if (usersQuery.isError || departmentsQuery.isError) {
+    return <p className="text-sm text-red-600">Không tải được dữ liệu dashboard.</p>
+  }
+
+  if (user.role === 'r-director') {
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -56,7 +64,7 @@ export function DashboardPage() {
         <div className="grid gap-6 xl:grid-cols-2">
           <HotspotList tasks={tasks} onOpen={setDetail} />
           <DepartmentBarChart
-            departments={loadDb().departments}
+            departments={departments}
             tasks={tasks}
           />
         </div>
@@ -89,8 +97,8 @@ export function DashboardPage() {
     )
   }
 
-  if (user.role === 'vice_director') {
-    const depts = loadDb().departments.filter((d) =>
+  if (user.role === 'r-vice-director') {
+    const depts = departments.filter((d) =>
       user.managedDepartmentIds?.includes(d.id),
     )
     return (
@@ -119,7 +127,7 @@ export function DashboardPage() {
     )
   }
 
-  if (user.role === 'department_head') {
+  if (user.role === 'r-dept-head') {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-slate-900">
@@ -129,7 +137,7 @@ export function DashboardPage() {
         {user.departmentId && (
           <DepartmentKPI
             department={
-              loadDb().departments.find((x) => x.id === user.departmentId)!
+              departments.find((x) => x.id === user.departmentId)!
             }
             tasks={visible}
           />
