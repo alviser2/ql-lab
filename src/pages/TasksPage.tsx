@@ -12,7 +12,7 @@ import { useUsersQuery } from '@/hooks/useUsersQuery'
 
 export function TasksPage() {
   const user = useAuthStore((s) => s.user)
-  const { data: tasksAll = [] } = useTasksQuery({ includeArchived: true })
+  const { data: tasksAll = [] } = useTasksQuery()
   const usersQuery = useUsersQuery()
   const users = usersQuery.data ?? []
   const [detail, setDetail] = useState<Task | null>(null)
@@ -21,10 +21,7 @@ export function TasksPage() {
     return new Map(users.map((u) => [u.id, u]))
   }, [users])
 
-  const activeTasks = useMemo(
-    () => tasksAll.filter((t) => !t.archived),
-    [tasksAll],
-  )
+  const activeTasks = tasksAll
 
   const visible = useMemo(
     () => (user ? tasksVisibleForUser(user, activeTasks) : []),

@@ -75,10 +75,11 @@ export function ApprovalInbox({
         Hộp duyệt — báo cáo từ cấp dưới
       </h3>
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[980px] w-full text-sm">
+        <table className="min-w-[1180px] w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="px-3 py-2 text-left font-semibold">Công việc</th>
+              <th className="px-3 py-2 text-left font-semibold">Người giao</th>
               <th className="px-3 py-2 text-left font-semibold">Người nhận</th>
               <th className="px-3 py-2 text-left font-semibold">Deadline</th>
               <th className="px-3 py-2 text-left font-semibold">Ưu tiên</th>
@@ -91,21 +92,23 @@ export function ApprovalInbox({
               const assigneeName = t.assigneeId
                 ? usersById.get(t.assigneeId)?.name || '—'
                 : '—'
+              const assignerName = t.assignedById
+                ? usersById.get(t.assignedById)?.name || '—'
+                : t.createdById
+                  ? usersById.get(t.createdById)?.name || '—'
+                  : '—'
+
               return (
-                <tr key={t.id} className="border-t border-slate-100 align-top">
-                  <td className="px-3 py-3">
-                    <div className="font-medium text-slate-900">{t.title}</div>
-                    <div className="mt-1 text-[11px] uppercase text-slate-500">
-                      {t.approvalSource === 'vice_line'
-                        ? 'Luồng PGĐ'
-                        : 'Luồng người giao việc'}
-                    </div>
+                <tr key={t.id} className="border-t border-slate-100">
+                  <td className="px-3 py-3 text-slate-900">
+                    <p className="truncate font-medium">{t.title}</p>
                   </td>
+                  <td className="px-3 py-3 text-slate-700">{assignerName}</td>
                   <td className="px-3 py-3 text-slate-700">{assigneeName}</td>
                   <td className="px-3 py-3"><DeadlineBadge deadline={t.deadline} /></td>
                   <td className="px-3 py-3"><PriorityTag priority={t.priority} /></td>
                   <td className="px-3 py-3 text-slate-700 max-w-[360px]">
-                    <p className="line-clamp-2">{t.lastReportSummary || '—'}</p>
+                    <p className="truncate">{t.lastReportSummary || '—'}</p>
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-2">
