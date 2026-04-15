@@ -44,9 +44,10 @@ export function Drawer({
       />
       <aside
         className={cn(
-          'relative h-full w-full max-w-md translate-x-full bg-white shadow-2xl ring-1 ring-slate-200 transition duration-300',
-          side === 'left' && 'translate-x-[-100%]',
-          open && 'translate-x-0',
+          'relative h-full w-full max-w-md bg-white shadow-2xl ring-1 ring-slate-200 transition-transform duration-300',
+          side === 'right'
+            ? (open ? 'translate-x-0' : 'translate-x-full')
+            : (open ? 'translate-x-0' : '-translate-x-full'),
         )}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
