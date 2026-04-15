@@ -30,41 +30,47 @@ export const MINUTE_FIELD_GROUPS: {
       },
       {
         key: 'sectionII_shiftComposition',
-        label: 'II.1 — Thành phần phiên trực',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 1. Thành phần phiên trực',
       },
       {
         key: 'sectionII_oldPatientCount',
-        label: 'II.1 — Số người bệnh cũ',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 1. Số người bệnh cũ',
       },
       {
         key: 'sectionII_admittedInShift',
-        label: 'II.1 — Số NB vào trong phiên trực',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 1. Số người bệnh vào trong phiên trực',
       },
       {
         key: 'sectionII_leftInShift',
-        label: 'II.1 — Số NB ra trong phiên trực (TV, CV, RV...)',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 1. Số người bệnh ra trong phiên trực',
       },
       {
         key: 'sectionII_currentPatientCount',
-        label: 'II.1 — Số người bệnh hiện có',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 1. Số người bệnh hiện có',
       },
       {
         key: 'sectionII_2a_admissions',
-        label: 'II.2a — NB vào viện (cấp cứu, nặng...)',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 2. a) Người bệnh vào viện',
       },
-      { key: 'sectionII_2b_deaths', label: 'II.2b — Số tử vong (tóm tắt)' },
+      {
+        key: 'sectionII_2b_deaths',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 2. b) Số tử vong',
+      },
       {
         key: 'sectionII_2b_transfers',
-        label: 'II.2b — Số chuyển viện (lý do)',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 2. b) Số chuyển viện',
       },
-      { key: 'sectionII_2b_discharges', label: 'II.2b — Số ra viện' },
+      {
+        key: 'sectionII_2b_discharges',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 2. b) Số ra viện',
+      },
       {
         key: 'sectionII_2c_abnormal',
-        label: 'II.2c — Diễn biến bất thường (nội trú, CSC I)',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 2. c) Diễn biến bất thường',
       },
       {
         key: 'sectionII_2c_suggestions',
-        label: 'II.2c — Ý kiến đề xuất chuyên môn',
+        label: 'II. Báo cáo Thường trực Chuyên môn / 2. c) Ý kiến đề xuất chuyên môn',
       },
       {
         key: 'sectionIII_paraclinical',
