@@ -12,7 +12,7 @@ import { useUsersQuery } from '@/hooks/useUsersQuery'
 
 export function TasksPage() {
   const user = useAuthStore((s) => s.user)
-  const { data: tasks = [] } = useTasksQuery()
+  const { data: tasksAll = [] } = useTasksQuery({ includeArchived: true })
   const usersQuery = useUsersQuery()
   const users = usersQuery.data ?? []
   const [detail, setDetail] = useState<Task | null>(null)
@@ -21,9 +21,14 @@ export function TasksPage() {
     return new Map(users.map((u) => [u.id, u]))
   }, [users])
 
+  const activeTasks = useMemo(
+    () => tasksAll.filter((t) => !t.archived),
+    [tasksAll],
+  )
+
   const visible = useMemo(
-    () => (user ? tasksVisibleForUser(user, tasks) : []),
-    [tasks, user],
+    () => (user ? tasksVisibleForUser(user, activeTasks) : []),
+    [activeTasks, user],
   )
 
   if (!user) return null
@@ -40,25 +45,37 @@ export function TasksPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-slate-900">Công việc</h1>
 
-      {user.role !== 'r-staff' && (
-        <ApprovalInbox tasks={visible} usersById={uMap} />
-      )}
+      {user.role !== 'r-staff' && <ApprovalInbox tasks={visible} usersById={uMap} />}
 
       {user.role === 'r-staff' && (
-        <MyTasks tasks={visible} usersById={uMap} allTasks={tasks} />
+        <MyTasks tasks={visible} usersById={uMap} allTasks={activeTasks} />
+      )}
+
+      {/* Dept-head: xem việc được giao cho mình và báo cáo lên PGĐ/GĐ */}
+      {user.role === 'r-dept-head' && (
+        <MyTasks
+          tasks={visible.filter((t) => t.assigneeId === user.id)}
+          usersById={uMap}
+          allTasks={activeTasks}
+        />
+      )}
+
+      {/* Vice-director: xem việc được giao cho mình và báo cáo lên GĐ */}
+      {user.role === 'r-vice-director' && (
+        <MyTasks
+          tasks={visible.filter((t) => t.assigneeId === user.id)}
+          usersById={uMap}
+          allTasks={activeTasks}
+        />
       )}
 
       {user.role === 'r-dept-head' && (
         <>
-          <KanbanBoard
-            tasks={visible}
-            usersById={uMap}
-            onOpenTask={setDetail}
-          />
+          <KanbanBoard tasks={visible} usersById={uMap} onOpenTask={setDetail} />
           <TaskDetailDrawer
             open={!!detail}
             task={detail}
-            tasks={tasks}
+            tasks={activeTasks}
             usersById={uMap}
             onClose={() => setDetail(null)}
           />
@@ -71,7 +88,7 @@ export function TasksPage() {
           <TaskDetailDrawer
             open={!!detail}
             task={detail}
-            tasks={tasks}
+            tasks={activeTasks}
             usersById={uMap}
             onClose={() => setDetail(null)}
           />

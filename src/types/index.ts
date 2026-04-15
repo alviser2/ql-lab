@@ -1,4 +1,4 @@
-export type Role = 'director' | 'vice_director' | 'department_head' | 'staff'
+export type Role = 'r-director' | 'r-vice-director' | 'r-dept-head' | 'r-staff'
 
 export type TaskStatus =
   | 'NEW'
@@ -9,7 +9,6 @@ export type TaskStatus =
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
-/** assigner_report: chờ người giao duyệt báo cáo; vice_line: PGĐ */
 export type TaskApprovalSource = 'assigner_report' | 'vice_line'
 
 export interface User {
@@ -17,9 +16,8 @@ export interface User {
   name: string
   email: string
   role: Role
-  /** Khoa trực thuộc (null với GĐ) */
+  roleName?: string
   departmentId: string | null
-  /** PGĐ: các khoa phụ trách */
   managedDepartmentIds?: string[]
   title?: string
 }
@@ -28,6 +26,7 @@ export interface Department {
   id: string
   name: string
   code: string
+  type?: 'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH'
 }
 
 export interface Task {
@@ -39,10 +38,8 @@ export interface Task {
   parentId: string | null
   assigneeId: string | null
   departmentId: string
-  /** PGĐ giám sát / phụ trách nhánh */
   overseenByViceDirectorId: string | null
   createdById: string
-  /** Người giao trực tiếp — duyệt báo cáo từ cấp dưới */
   assignedById: string | null
   pendingApprovalReviewerId: string | null
   approvalSource: TaskApprovalSource | null
@@ -51,24 +48,40 @@ export interface Task {
   deadline: string
   createdAt: string
   updatedAt: string
-  /** Thường trực phụ trách (người trực tiếp thực hiện/giám sát tại cấp này) */
+  started_at?: string | null
+  completed_at?: string | null
+  archived?: boolean
+  archivedAt?: string | null
+  archivedById?: string | null
+  meeting_id?: string | null
+  parent_task_id?: string | null
+  monitor_id?: string | null
+  result_note?: string | null
+
+  // Enriched from backend
+  creatorName?: string
+  assigneeName?: string
+  monitorName?: string
+  overseerName?: string
+  reviewerName?: string
+  departmentName?: string
+  meetingTitle?: string
+
+  // Legacy frontend fields
   thuongTrucId?: string | null
-  /** Bộ phận phối hợp (nhiều khoa cùng thực hiện) */
   boPhanPhoiHopIds?: string[]
-  /** Phương pháp thực hiện */
   phuongPhapLam?: string | null
-  /** Dự kiến kết quả */
   dukienKetQua?: string | null
+}
+
+export interface TaskTreeNode extends Task {
+  children?: TaskTreeNode[]
 }
 
 export type MeetingStatus = 'draft' | 'approved'
 
-/** Nội dung biên bản theo mẫu Bệnh viện (A/B/C) — nhập tự do */
 export interface MeetingMinutes {
-  /** V/v: */
   matter?: string
-
-  /** A — Hành chính (ghi chú thời gian nếu khác trường lịch hệ thống) */
   adminTimeStartNote?: string
   adminTimeEndNote?: string
   adminLocation?: string
@@ -78,11 +91,7 @@ export interface MeetingMinutes {
   adminSecretaryPosition?: string
   adminAttendeesNote?: string
   adminAbsentNote?: string
-
-  /** B — I. Thường trực lãnh đạo */
   sectionI_leadershipShift?: string
-
-  /** B — II. Thường trực chuyên môn */
   sectionII_shiftComposition?: string
   sectionII_oldPatientCount?: string
   sectionII_admittedInShift?: string
@@ -94,13 +103,9 @@ export interface MeetingMinutes {
   sectionII_2b_discharges?: string
   sectionII_2c_abnormal?: string
   sectionII_2c_suggestions?: string
-
-  /** B — III, IV, V */
   sectionIII_paraclinical?: string
   sectionIV_adminSecurity?: string
   sectionV_unitDiscussion?: string
-
-  /** C — Kết luận chủ tọa */
   chairConclusionProfessional?: string
   chairConclusionLogistics?: string
   chairConclusionLevel1Care?: string
@@ -109,37 +114,24 @@ export interface MeetingMinutes {
 
 export interface Meeting {
   id: string
-  /** Tiêu đề phiên (vd: Biên bản họp giao ban lãnh đạo) */
   title: string
-  /** Số: .../BB-GB */
   documentNumber?: string
-  /** Địa danh (vd: Thanh Hóa) */
   documentPlace?: string
   documentDay?: number
   documentMonth?: number
   documentYear?: number
-
   startAt: string
   endAt?: string | null
   room: string
-
   chairId: string
-  /** Thư ký — được sửa biên bản trước khi GĐ duyệt */
   secretaryId: string
   attendeeIds: string[]
   departmentId: string | null
-
   status: MeetingStatus
   approvedAt?: string | null
   approvedById?: string | null
-
   createdById: string
   createdAt: string
   updatedAt: string
-
   minutes: MeetingMinutes
-}
-
-export interface TaskTreeNode extends Task {
-  children?: TaskTreeNode[]
 }

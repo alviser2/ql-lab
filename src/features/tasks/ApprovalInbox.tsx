@@ -4,10 +4,10 @@ import toast from 'react-hot-toast'
 import { Check, X } from 'lucide-react'
 import type { Task, User } from '@/types'
 import * as taskService from '@/services/taskService'
-import { TaskCard } from '@/components/TaskCard'
 import { Modal } from '@/components/Modal'
-import { useTaskStore } from '@/store/taskStore'
 import { useAuthStore } from '@/store/authStore'
+import { DeadlineBadge } from '@/components/DeadlineBadge'
+import { PriorityTag } from '@/components/PriorityTag'
 
 export function ApprovalInbox({
   tasks,
@@ -18,7 +18,6 @@ export function ApprovalInbox({
 }) {
   const user = useAuthStore((s) => s.user)
   const qc = useQueryClient()
-  const fetchTasks = useTaskStore((s) => s.fetchTasks)
   const [rejecting, setRejecting] = useState<Task | null>(null)
   const [reason, setReason] = useState('')
 
@@ -42,7 +41,7 @@ export function ApprovalInbox({
       rejectionReason?: string
     }) => {
       if (!user) throw new Error('NO_USER')
-      return taskService.approveTask(id, approve, user.id, rejectionReason)
+      return taskService.approveTask(id, approve, rejectionReason)
     },
     onSuccess: async (_, v) => {
       if (v.approve) {
@@ -51,12 +50,12 @@ export function ApprovalInbox({
         toast.error('Đã từ chối báo cáo — cấp dưới có thể chỉnh sửa và gửi lại')
       }
       await qc.invalidateQueries({ queryKey: ['tasks'] })
-      await fetchTasks()
       setRejecting(null)
       setReason('')
     },
-    onError: (e: Error) => {
-      if (e.message === 'FORBIDDEN_NOT_REVIEWER') {
+    onError: (e: Error & { code?: string }) => {
+      const code = e.code || e.message
+      if (code === 'FORBIDDEN_NOT_REVIEWER') {
         toast.error('Bạn không phải người duyệt của việc này')
       } else toast.error(e.message || 'Thao tác thất bại')
     },
@@ -75,58 +74,70 @@ export function ApprovalInbox({
       <h3 className="text-sm font-semibold text-slate-800">
         Hộp duyệt — báo cáo từ cấp dưới
       </h3>
-      <ul className="space-y-3">
-        {pending.map((t) => (
-          <li
-            key={t.id}
-            className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-amber-50/40 p-3 sm:flex-row sm:items-start"
-          >
-            <div className="min-w-0 flex-1 space-y-2">
-              <TaskCard
-                task={t}
-                assignee={
-                  t.assigneeId ? usersById.get(t.assigneeId) ?? null : null
-                }
-                compact
-              />
-              {t.lastReportSummary && (
-                <p className="rounded-lg bg-white/80 p-2 text-xs text-slate-700 ring-1 ring-amber-100">
-                  <span className="font-semibold text-amber-900">Báo cáo: </span>
-                  {t.lastReportSummary}
-                </p>
-              )}
-              <p className="text-[10px] uppercase text-slate-500">
-                {t.approvalSource === 'vice_line'
-                  ? 'Luồng PGĐ'
-                  : 'Luồng người giao việc'}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <button
-                type="button"
-                disabled={mut.isPending}
-                onClick={() => mut.mutate({ id: t.id, approve: true })}
-                className="inline-flex items-center gap-1 rounded-xl bg-medical-600 px-3 py-2 text-sm font-medium text-white shadow hover:bg-medical-700 disabled:opacity-50"
-              >
-                <Check className="size-4" />
-                Duyệt
-              </button>
-              <button
-                type="button"
-                disabled={mut.isPending}
-                onClick={() => {
-                  setRejecting(t)
-                  setReason('')
-                }}
-                className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-              >
-                <X className="size-4" />
-                Từ chối
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="min-w-[980px] w-full text-sm">
+          <thead className="bg-slate-50 text-slate-600">
+            <tr>
+              <th className="px-3 py-2 text-left font-semibold">Công việc</th>
+              <th className="px-3 py-2 text-left font-semibold">Người nhận</th>
+              <th className="px-3 py-2 text-left font-semibold">Deadline</th>
+              <th className="px-3 py-2 text-left font-semibold">Ưu tiên</th>
+              <th className="px-3 py-2 text-left font-semibold">Báo cáo</th>
+              <th className="px-3 py-2 text-right font-semibold">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pending.map((t) => {
+              const assigneeName = t.assigneeId
+                ? usersById.get(t.assigneeId)?.name || '—'
+                : '—'
+              return (
+                <tr key={t.id} className="border-t border-slate-100 align-top">
+                  <td className="px-3 py-3">
+                    <div className="font-medium text-slate-900">{t.title}</div>
+                    <div className="mt-1 text-[11px] uppercase text-slate-500">
+                      {t.approvalSource === 'vice_line'
+                        ? 'Luồng PGĐ'
+                        : 'Luồng người giao việc'}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-slate-700">{assigneeName}</td>
+                  <td className="px-3 py-3"><DeadlineBadge deadline={t.deadline} /></td>
+                  <td className="px-3 py-3"><PriorityTag priority={t.priority} /></td>
+                  <td className="px-3 py-3 text-slate-700 max-w-[360px]">
+                    <p className="line-clamp-2">{t.lastReportSummary || '—'}</p>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        disabled={mut.isPending}
+                        onClick={() => mut.mutate({ id: t.id, approve: true })}
+                        className="inline-flex items-center gap-1 rounded-lg bg-medical-600 px-3 py-1.5 text-sm font-medium text-white shadow hover:bg-medical-700 disabled:opacity-50"
+                      >
+                        <Check className="size-4" />
+                        Duyệt
+                      </button>
+                      <button
+                        type="button"
+                        disabled={mut.isPending}
+                        onClick={() => {
+                          setRejecting(t)
+                          setReason('')
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <X className="size-4" />
+                        Từ chối
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <Modal
         open={!!rejecting}

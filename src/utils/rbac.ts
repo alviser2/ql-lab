@@ -1,24 +1,26 @@
 import type { Meeting, Role, Task, User } from '@/types'
 import { meetingVisibleToUser } from '@/utils/meetingPermissions'
 
-export function tasksVisibleForUser(user: User, tasks: Task[]): Task[] {
-  if (user.role === 'director') return tasks
+export function tasksVisibleForUser(
+  user: User,
+  tasks: Task[],
+  options?: { includeArchived?: boolean },
+): Task[] {
+  const scopedTasks = options?.includeArchived
+    ? tasks
+    : tasks.filter((t) => !t.archived)
 
-  if (user.role === 'vice_director') {
-    const dept = new Set(user.managedDepartmentIds ?? [])
-    return tasks.filter(
-      (t) =>
-        t.overseenByViceDirectorId === user.id ||
-        dept.has(t.departmentId),
-    )
+  // Director and Vice-director can see all scoped tasks
+  if (user.role === 'r-director' || user.role === 'r-vice-director') {
+    return scopedTasks
   }
 
-  if (user.role === 'department_head') {
+  if (user.role === 'r-dept-head') {
     if (!user.departmentId) return []
-    return tasks.filter((t) => t.departmentId === user.departmentId)
+    return scopedTasks.filter((t) => t.departmentId === user.departmentId)
   }
 
-  return tasks.filter((t) => t.assigneeId === user.id)
+  return scopedTasks.filter((t) => t.assigneeId === user.id)
 }
 
 export function canAccessRoute(

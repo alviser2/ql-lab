@@ -5,7 +5,6 @@ import { useTasksQuery } from '@/hooks/useTasksQuery'
 import { tasksVisibleForUser } from '@/utils/rbac'
 import { KPIOverview } from '@/features/dashboard/KPIOverview'
 import { HotspotList } from '@/features/dashboard/HotspotList'
-import { GanttChart } from '@/features/dashboard/GanttChart'
 import { DepartmentBarChart } from '@/features/dashboard/DepartmentBarChart'
 import { DepartmentKPI } from '@/features/kpi/DepartmentKPI'
 import { ApprovalInbox } from '@/features/tasks/ApprovalInbox'
@@ -18,7 +17,7 @@ import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
-  const { data: tasks = [] } = useTasksQuery()
+  const { data: tasksAll = [] } = useTasksQuery({ includeArchived: true })
   const usersQuery = useUsersQuery()
   const departmentsQuery = useDepartmentsQuery()
   const users = usersQuery.data ?? []
@@ -26,9 +25,22 @@ export function DashboardPage() {
   const [detail, setDetail] = useState<Task | null>(null)
   const uMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users])
 
+  const activeTasks = useMemo(
+    () => tasksAll.filter((t) => !t.archived),
+    [tasksAll],
+  )
+
   const visible = useMemo(
-    () => (user ? tasksVisibleForUser(user, tasks) : []),
-    [tasks, user],
+    () => (user ? tasksVisibleForUser(user, activeTasks) : []),
+    [activeTasks, user],
+  )
+
+  const visibleForKpi = useMemo(
+    () =>
+      user
+        ? tasksVisibleForUser(user, tasksAll, { includeArchived: true })
+        : [],
+    [tasksAll, user],
   )
 
   if (!user) return null
@@ -60,36 +72,15 @@ export function DashboardPage() {
             Mở cây việc đầy đủ
           </Link>
         </div>
-        <KPIOverview tasks={tasks} />
+        <KPIOverview tasks={tasksAll} />
         <div className="grid gap-6 xl:grid-cols-2">
-          <HotspotList tasks={tasks} onOpen={setDetail} />
-          <DepartmentBarChart
-            departments={departments}
-            tasks={tasks}
-          />
-        </div>
-        <div className="grid gap-6 xl:grid-cols-2">
-          <GanttChart tasks={tasks} />
-          <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 text-sm text-slate-600 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Pie KPI theo trạng thái (hệ thống)
-            </h3>
-            <div className="mt-4">
-              <DepartmentKPI
-                department={{
-                  id: 'all',
-                  name: 'Toàn viện',
-                  code: 'BV',
-                }}
-                tasks={tasks}
-              />
-            </div>
-          </div>
+          <HotspotList tasks={activeTasks} onOpen={setDetail} />
+          <DepartmentBarChart departments={departments} tasks={activeTasks} />
         </div>
         <TaskDetailDrawer
           open={!!detail}
           task={detail}
-          tasks={tasks}
+          tasks={activeTasks}
           usersById={uMap}
           onClose={() => setDetail(null)}
         />
@@ -106,14 +97,14 @@ export function DashboardPage() {
         <h1 className="text-2xl font-bold text-slate-900">
           Workspace Phó Giám đốc
         </h1>
-        <KPIOverview tasks={visible} />
+        <KPIOverview tasks={visibleForKpi} />
         <ApprovalInbox tasks={visible} usersById={uMap} />
         <div className="grid gap-6 lg:grid-cols-2">
           {depts.map((d) => (
             <DepartmentKPI
               key={d.id}
               department={d}
-              tasks={visible.filter((t) => t.departmentId === d.id)}
+              tasks={visibleForKpi.filter((t) => t.departmentId === d.id)}
             />
           ))}
         </div>
@@ -130,27 +121,19 @@ export function DashboardPage() {
   if (user.role === 'r-dept-head') {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">
-          Điều hành khoa
-        </h1>
-        <KPIOverview tasks={visible} />
+        <h1 className="text-2xl font-bold text-slate-900">Điều hành khoa</h1>
+        <KPIOverview tasks={visibleForKpi} />
         {user.departmentId && (
           <DepartmentKPI
-            department={
-              departments.find((x) => x.id === user.departmentId)!
-            }
-            tasks={visible}
+            department={departments.find((x) => x.id === user.departmentId)!}
+            tasks={visibleForKpi}
           />
         )}
-        <KanbanBoard
-          tasks={visible}
-          usersById={uMap}
-          onOpenTask={setDetail}
-        />
+        <KanbanBoard tasks={visible} usersById={uMap} onOpenTask={setDetail} />
         <TaskDetailDrawer
           open={!!detail}
           task={detail}
-          tasks={tasks}
+          tasks={activeTasks}
           usersById={uMap}
           onClose={() => setDetail(null)}
         />
@@ -161,7 +144,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-slate-900 px-1">Việc hằng ngày</h1>
-      <MyTasks tasks={visible} usersById={uMap} allTasks={tasks} />
+      <MyTasks tasks={visible} usersById={uMap} allTasks={activeTasks} />
     </div>
   )
 }

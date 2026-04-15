@@ -1,59 +1,89 @@
-import type { Task, TaskApprovalSource, TaskPriority, TaskTreeNode } from '@/types'
-import { loadDb, mockLatency, saveDb } from '@/services/mockDb'
+import api from '@/lib/api'
+import type { Task, TaskPriority, TaskTreeNode } from '@/types'
 
-function genId(prefix: string) {
-  return `${prefix}-${crypto.randomUUID().slice(0, 8)}`
+// ── Normalizers ─────────────────────────────────────────────
+
+function normalizeTask(t: any): Task {
+  return {
+    id: t.id ?? '',
+    title: t.title ?? '',
+    description: t.description ?? undefined,
+    status: t.status ?? 'NEW',
+    priority: t.priority ?? 'MEDIUM',
+    // Support both backend snake_case and frontend camelCase
+    parentId: t.parent_task_id ?? t.parentId ?? null,
+    assigneeId: t.assignee_id ?? t.assigneeId ?? null,
+    departmentId: t.department_id ?? t.departmentId ?? '',
+    overseenByViceDirectorId: t.overseen_by_vice_director_id ?? t.overseenByViceDirectorId ?? null,
+    createdById: t.creator_id ?? t.createdById ?? '',
+    assignedById: t.assigned_by_id ?? t.assignedById ?? null,
+    pendingApprovalReviewerId: t.pending_approval_reviewer_id ?? t.pendingApprovalReviewerId ?? null,
+    approvalSource: t.approval_source ?? t.approvalSource ?? null,
+    // report_summary and extended_note are SEPARATE fields now
+    lastReportSummary: t.report_summary ?? t.lastReportSummary ?? null,
+    lastRejectionReason: t.last_rejection_reason ?? t.lastRejectionReason ?? null,
+    deadline: t.deadline ?? '',
+    createdAt: t.created_at ?? t.createdAt ?? new Date().toISOString(),
+    updatedAt: t.updated_at ?? t.updatedAt ?? new Date().toISOString(),
+    started_at: t.started_at ?? t.started_at ?? null,
+    completed_at: t.completed_at ?? t.completed_at ?? null,
+    archived: Number(t.archived ?? 0) === 1 || t.archived === true,
+    archivedAt: t.archived_at ?? t.archivedAt ?? null,
+    archivedById: t.archived_by_id ?? t.archivedById ?? null,
+    meeting_id: t.meeting_id ?? t.meetingId ?? null,
+    parent_task_id: t.parent_task_id ?? t.parentId ?? null,
+    monitor_id: t.monitor_id ?? t.monitorId ?? null,
+    // extended_note stores: thuong_truc + bo_phan_phoi + phuong_phap + dukien
+    result_note: t.extended_note ?? t.result_note ?? null,
+    // Enriched names
+    creatorName: t.creatorName ?? t.creator_name ?? null,
+    assigneeName: t.assigneeName ?? t.assignee_name ?? null,
+    monitorName: t.monitorName ?? null,
+    overseerName: t.overseerName ?? null,
+    reviewerName: t.reviewerName ?? null,
+    departmentName: t.departmentName ?? null,
+    meetingTitle: t.meetingTitle ?? null,
+    // Legacy extended fields (parsed from extended_note if present as single string)
+    thuongTrucId: t.thuongTrucId ?? null,
+    boPhanPhoiHopIds: t.boPhanPhoiHopIds ?? [],
+    phuongPhapLam: t.phuongPhapLam ?? null,
+    dukienKetQua: t.dukienKetQua ?? null,
+  }
 }
 
-export async function getTasks(): Promise<Task[]> {
-  const db = loadDb()
-  return mockLatency([...db.tasks])
+function normalizeTree(t: any): TaskTreeNode {
+  return {
+    ...normalizeTask(t),
+    children: (t.children ?? []).map(normalizeTree),
+  }
+}
+
+// ── API functions ───────────────────────────────────────────
+
+export async function getTasks(options?: {
+  includeArchived?: boolean
+  onlyArchived?: boolean
+}): Promise<Task[]> {
+  const params: Record<string, string> = {}
+  if (options?.includeArchived) params.include_archived = '1'
+  if (options?.onlyArchived) params.only_archived = '1'
+  const res = await api.get('/tasks', { params })
+  return res.data.map(normalizeTask)
 }
 
 export async function getTaskById(id: string): Promise<Task | null> {
-  const db = loadDb()
-  const t = db.tasks.find((x) => x.id === id) ?? null
-  return mockLatency(t, 180)
-}
-
-export async function getTaskTreeRoots(): Promise<Task[]> {
-  const db = loadDb()
-  const roots = db.tasks.filter((t) => t.parentId === null)
-  return mockLatency(roots, 280)
-}
-
-export async function getChildTasks(parentId: string): Promise<Task[]> {
-  const db = loadDb()
-  const children = db.tasks.filter((t) => t.parentId === parentId)
-  return mockLatency(children, 400)
+  const res = await api.get(`/tasks/${id}`)
+  return normalizeTask(res.data)
 }
 
 export async function getTaskTreeFull(): Promise<TaskTreeNode[]> {
-  const db = loadDb()
-  const map = new Map<string, TaskTreeNode>()
-  db.tasks.forEach((t) => map.set(t.id, { ...t, children: [] }))
+  const res = await api.get('/tasks/tree')
+  return res.data.map(normalizeTree)
+}
 
-  const roots: TaskTreeNode[] = []
-  map.forEach((node) => {
-    if (!node.parentId) {
-      roots.push(node)
-      return
-    }
-    const p = map.get(node.parentId)
-    if (p) {
-      if (!p.children) p.children = []
-      p.children.push(node)
-    }
-  })
-
-  function sortTree(nodes: TaskTreeNode[]) {
-    nodes.sort((a, b) => a.title.localeCompare(b.title, 'vi'))
-    nodes.forEach((n) => {
-      if (n.children?.length) sortTree(n.children)
-    })
-  }
-  sortTree(roots)
-  return mockLatency(roots, 350)
+export async function getTaskHistory(): Promise<Task[]> {
+  const res = await api.get('/tasks/history')
+  return res.data.map(normalizeTask)
 }
 
 export async function createTask(input: {
@@ -72,197 +102,66 @@ export async function createTask(input: {
   phuongPhapLam?: string | null
   dukienKetQua?: string | null
 }): Promise<Task> {
-  const db = loadDb()
-  const parent = input.parentId
-    ? db.tasks.find((t) => t.id === input.parentId)
-    : null
-  if (parent && new Date(input.deadline) > new Date(parent.deadline)) {
-    throw new Error('DEADLINE_AFTER_PARENT')
-  }
-
-  const task: Task = {
-    id: genId('t'),
+  const res = await api.post('/tasks', {
     title: input.title,
     description: input.description,
-    status: 'NEW',
+    meeting_id: null,
+    parent_task_id: input.parentId,
+    department_id: input.departmentId,
     priority: input.priority,
-    parentId: input.parentId,
-    assigneeId: input.assigneeId,
-    departmentId: input.departmentId,
-    overseenByViceDirectorId: input.overseenByViceDirectorId,
-    createdById: input.createdById,
-    assignedById: input.assignedById,
-    pendingApprovalReviewerId: null,
-    approvalSource: null,
-    lastReportSummary: null,
-    lastRejectionReason: null,
+    assignee_id: input.assigneeId,
+    monitor_id: input.thuongTrucId || null,
     deadline: input.deadline,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    thuongTrucId: input.thuongTrucId ?? null,
-    boPhanPhoiHopIds: input.boPhanPhoiHopIds ?? [],
-    phuongPhapLam: input.phuongPhapLam ?? null,
-    dukienKetQua: input.dukienKetQua ?? null,
-  }
-  db.tasks.push(task)
-  saveDb(db)
-  return mockLatency(task, 400)
+    thuong_truc_id: input.thuongTrucId,
+    bo_phan_phoi_hop_ids: input.boPhanPhoiHopIds,
+    phuong_phap_lam: input.phuongPhapLam,
+    dukien_ket_qua: input.dukienKetQua,
+  })
+  return normalizeTask(res.data)
 }
 
 export async function submitTaskReport(
   taskId: string,
-  actorId: string,
   summary: string,
 ): Promise<Task> {
-  const db = loadDb()
-  const idx = db.tasks.findIndex((t) => t.id === taskId)
-  if (idx === -1) throw new Error('NOT_FOUND')
-  const cur = db.tasks[idx]
-  if (cur.assigneeId !== actorId) throw new Error('FORBIDDEN_NOT_ASSIGNEE')
-  if (cur.status !== 'IN_PROGRESS' && cur.status !== 'NEW') {
-    throw new Error('INVALID_FOR_REPORT')
-  }
-  const reviewer = cur.assignedById ?? cur.createdById
-  if (!reviewer) throw new Error('NO_REVIEWER')
-  const next: Task = {
-    ...cur,
-    status: 'PENDING_APPROVAL',
-    pendingApprovalReviewerId: reviewer,
-    approvalSource: 'assigner_report',
-    lastReportSummary: summary.trim() || null,
-    lastRejectionReason: null,
-    updatedAt: new Date().toISOString(),
-  }
-  db.tasks[idx] = next
-  saveDb(db)
-  return mockLatency(next, 400)
+  const res = await api.post(`/tasks/${taskId}/report`, { summary })
+  return normalizeTask(res.data)
 }
 
 export async function updateTask(
   id: string,
-  patch: Partial<
-    Pick<
-      Task,
-      | 'title'
-      | 'description'
-      | 'status'
-      | 'priority'
-      | 'assigneeId'
-      | 'deadline'
-      | 'parentId'
-      | 'thuongTrucId'
-      | 'boPhanPhoiHopIds'
-      | 'phuongPhapLam'
-      | 'dukienKetQua'
-    >
-  >,
+  patch: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'deadline' | 'parentId'>>,
 ): Promise<Task> {
-  const db = loadDb()
-  const idx = db.tasks.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error('NOT_FOUND')
-  const cur = db.tasks[idx]
-  const next = { ...cur, ...patch, updatedAt: new Date().toISOString() }
+  const data: Record<string, unknown> = {}
+  if (patch.title !== undefined) data.title = patch.title
+  if (patch.description !== undefined) data.description = patch.description
+  if (patch.status !== undefined) data.status = patch.status
+  if (patch.priority !== undefined) data.priority = patch.priority
+  if (patch.deadline !== undefined) data.deadline = patch.deadline
+  if (patch.parentId !== undefined) data.parent_task_id = patch.parentId
 
-  if (patch.deadline) {
-    const parent = next.parentId
-      ? db.tasks.find((t) => t.id === next.parentId)
-      : null
-    if (parent && new Date(next.deadline) > new Date(parent.deadline)) {
-      throw new Error('DEADLINE_AFTER_PARENT')
-    }
-  }
-
-  if (patch.status === 'COMPLETED') {
-    if (cur.status === 'PENDING_APPROVAL' || cur.status === 'REJECTED') {
-      throw new Error('INVALID_STATUS_FLOW')
-    }
-    const children = db.tasks.filter((t) => t.parentId === id)
-    if (children.some((c) => c.status !== 'COMPLETED')) {
-      throw new Error('CHILDREN_NOT_DONE')
-    }
-  }
-
-  if (patch.status && patch.status !== 'PENDING_APPROVAL') {
-    next.pendingApprovalReviewerId = null
-    next.approvalSource = null
-  }
-
-  db.tasks[idx] = next
-  saveDb(db)
-  return mockLatency(next, 350)
+  const res = await api.patch(`/tasks/${id}`, data)
+  return normalizeTask(res.data)
 }
 
 export async function approveTask(
   id: string,
   approve: boolean,
-  actorId: string,
   rejectionReason?: string,
 ): Promise<Task> {
-  const db = loadDb()
-  const idx = db.tasks.findIndex((t) => t.id === id)
-  if (idx === -1) throw new Error('NOT_FOUND')
-  const cur = db.tasks[idx]
-  if (cur.status !== 'PENDING_APPROVAL') throw new Error('NOT_PENDING')
-  if (cur.pendingApprovalReviewerId !== actorId) {
-    throw new Error('FORBIDDEN_NOT_REVIEWER')
-  }
-
-  const src: TaskApprovalSource = cur.approvalSource ?? 'assigner_report'
-  let next: Task
-
-  if (approve) {
-    next = {
-      ...cur,
-      status: 'COMPLETED',
-      pendingApprovalReviewerId: null,
-      approvalSource: null,
-      lastRejectionReason: null,
-      updatedAt: new Date().toISOString(),
-    }
-  } else if (src === 'vice_line') {
-    next = {
-      ...cur,
-      status: 'REJECTED',
-      pendingApprovalReviewerId: null,
-      approvalSource: null,
-      lastRejectionReason: rejectionReason?.trim() || 'Từ chối',
-      updatedAt: new Date().toISOString(),
-    }
-  } else {
-    next = {
-      ...cur,
-      status: 'IN_PROGRESS',
-      pendingApprovalReviewerId: null,
-      approvalSource: null,
-      lastRejectionReason:
-        rejectionReason?.trim() || 'Báo cáo bị từ chối — vui lòng chỉnh sửa và gửi lại.',
-      updatedAt: new Date().toISOString(),
-    }
-  }
-
-  db.tasks[idx] = next
-  saveDb(db)
-  return mockLatency(next, 400)
+  const res = await api.post(`/tasks/${id}/approve`, {
+    approve,
+    rejection_reason: rejectionReason,
+  })
+  return normalizeTask(res.data)
 }
 
 export async function assignTask(
   taskId: string,
   assigneeId: string | null,
-  delegatedById?: string | null,
 ): Promise<Task> {
-  const db = loadDb()
-  const idx = db.tasks.findIndex((t) => t.id === taskId)
-  if (idx === -1) throw new Error('NOT_FOUND')
-  const cur = db.tasks[idx]
-  db.tasks[idx] = {
-    ...cur,
-    assigneeId,
-    assignedById:
-      delegatedById != null && delegatedById !== ''
-        ? delegatedById
-        : cur.assignedById,
-    updatedAt: new Date().toISOString(),
-  }
-  saveDb(db)
-  return mockLatency(db.tasks[idx], 300)
+  const res = await api.post(`/tasks/${taskId}/assign`, {
+    assignee_id: assigneeId,
+  })
+  return normalizeTask(res.data)
 }

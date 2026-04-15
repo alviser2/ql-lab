@@ -21,6 +21,7 @@ import { cn } from '@/utils/cn'
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/tasks', label: 'Tasks', icon: ClipboardList },
+  { to: '/tasks/history', label: 'Lịch sử công việc', icon: ClipboardList },
   { to: '/kpi', label: 'KPI', icon: PieChart },
   { to: '/meetings', label: 'Meetings', icon: Users },
 ]

@@ -143,6 +143,9 @@ function initSchema(db) {
       deadline TEXT NOT NULL,
       started_at TEXT,
       completed_at TEXT,
+      archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)),
+      archived_at TEXT,
+      archived_by_id TEXT REFERENCES users(id),
       status TEXT NOT NULL DEFAULT 'NEW' CHECK(status IN ('NEW','IN_PROGRESS','PENDING_APPROVAL','COMPLETED','REJECTED')),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -356,6 +359,30 @@ function runMigrations(db) {
 
           CREATE INDEX IF NOT EXISTS idx_meetings_date_dept_status
             ON meetings(meeting_date, department_id, status);
+        `)
+      },
+    },
+    {
+      id: '005_tasks_archive_columns',
+      run: () => {
+        ensureColumn(
+          db,
+          'tasks',
+          'archived',
+          'archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1))',
+        )
+        ensureColumn(db, 'tasks', 'archived_at', 'archived_at TEXT')
+        ensureColumn(
+          db,
+          'tasks',
+          'archived_by_id',
+          'archived_by_id TEXT REFERENCES users(id)',
+        )
+
+        db.exec(`
+          UPDATE tasks
+          SET archived = 0
+          WHERE archived IS NULL
         `)
       },
     },

@@ -9,12 +9,15 @@ import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
 
 export function KPIPage() {
   const user = useAuthStore((s) => s.user)
-  const { data: tasks = [] } = useTasksQuery()
+  const { data: tasks = [] } = useTasksQuery({ includeArchived: true })
   const departmentsQuery = useDepartmentsQuery()
   const departments = departmentsQuery.data ?? []
 
   const visible = useMemo(
-    () => (user ? tasksVisibleForUser(user, tasks) : []),
+    () =>
+      user
+        ? tasksVisibleForUser(user, tasks, { includeArchived: true })
+        : [],
     [tasks, user],
   )
 
