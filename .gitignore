@@ -11,6 +11,14 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+
+# Runtime database artifacts
+server/*.db
+server/*.db-shm
+server/*.db-wal
 
 # Editor directories and files
 .vscode/*

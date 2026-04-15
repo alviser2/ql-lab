@@ -11,15 +11,50 @@ import meetingsRouter from './routes/meetings.js'
 import kpiRouter from './routes/kpi.js'
 import departmentsRouter from './routes/departments.js'
 
-// Init DB and seed
-const db = getDb()
-seed()
-
 const app = express()
 const PORT = process.env.PORT || 3001
+const NODE_ENV = process.env.NODE_ENV || 'development'
+const IS_PRODUCTION = NODE_ENV === 'production'
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
+if (IS_PRODUCTION && !process.env.JWT_SECRET) {
+  console.error('[startup] JWT_SECRET is required in production.')
+  process.exit(1)
+}
+
+const defaultCorsOrigins = IS_PRODUCTION ? '' : 'http://localhost:5173'
+const parsedOrigins = (process.env.CORS_ORIGINS || defaultCorsOrigins)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+const allowedOrigins = new Set(parsedOrigins)
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // allow non-browser/server-to-server calls
+      if (!origin) return callback(null, true)
+      if (allowedOrigins.has(origin)) return callback(null, true)
+      return callback(new Error(`CORS blocked for origin: ${origin}`))
+    },
+    credentials: true,
+  }),
+)
 app.use(express.json({ limit: '10mb' }))
+
+// Init DB and optional seed
+getDb()
+const shouldSeed = process.env.SEED_ON_START === 'true' || !IS_PRODUCTION
+if (shouldSeed) {
+  seed()
+}
+
+console.log('[startup] env:', {
+  nodeEnv: NODE_ENV,
+  dbPath: process.env.DB_PATH || 'server/giao_ban.db',
+  corsOrigins: parsedOrigins,
+  seedOnStart: shouldSeed,
+})
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -37,7 +72,10 @@ app.use('/api/departments', departmentsRouter)
 // Error handler
 app.use((err, req, res, next) => {
   console.error('[server error]', err)
-  res.status(500).json({ error: err.message || 'Lỗi server' })
+  res.status(500).json({
+    code: 'INTERNAL_SERVER_ERROR',
+    message: err.message || 'Lỗi server',
+  })
 })
 
 app.listen(PORT, () => {
