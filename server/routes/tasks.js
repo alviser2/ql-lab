@@ -564,6 +564,13 @@ router.patch('/:id', authenticate, (req, res) => {
     patch.comment || null,
   )
 
+  if (userRole === 'r-director') {
+    const rootId = getRootTaskId(req.params.id, db)
+    if (subtreeReadyForArchive(rootId, db)) {
+      archiveSubtree(rootId, userId, db)
+    }
+  }
+
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id)
   res.json(enrichTask(updated))
 })

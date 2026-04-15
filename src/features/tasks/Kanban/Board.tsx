@@ -9,14 +9,13 @@ import toast from 'react-hot-toast'
 import type { Task, TaskStatus, User } from '@/types'
 import * as taskService from '@/services/taskService'
 import { KanbanColumn } from '@/features/tasks/Kanban/KanbanColumn'
-import { useTaskStore } from '@/store/taskStore'
 import { useQueryClient } from '@tanstack/react-query'
 
 const COL = {
   TODO: 'NEW' as const,
   DOING: 'IN_PROGRESS' as const,
   REVIEW: 'PENDING_APPROVAL' as const,
-  DONE: 'DONE' as const,
+  DONE: 'COMPLETED' as const,
 }
 
 type ColId = (typeof COL)[keyof typeof COL]
@@ -38,7 +37,6 @@ export function KanbanBoard({
   onOpenTask: (t: Task) => void
 }) {
   const qc = useQueryClient()
-  const fetchTasks = useTaskStore((s) => s.fetchTasks)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -51,6 +49,8 @@ export function KanbanBoard({
     [COL.DONE]: [],
   }
   for (const t of tasks) {
+    // Đã kéo vào Done thì ẩn khỏi board để Kanban gọn hơn
+    if (t.status === 'COMPLETED' || t.status === 'REJECTED') continue
     grouped[columnForTask(t)].push(t)
   }
 
@@ -85,7 +85,6 @@ export function KanbanBoard({
     try {
       await taskService.updateTask(taskId, { status: nextStatus })
       await qc.invalidateQueries({ queryKey: ['tasks'] })
-      await fetchTasks()
       toast.success('Đã cập nhật cột')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không cập nhật được'
@@ -119,7 +118,7 @@ export function KanbanBoard({
         />
         <KanbanColumn
           id={COL.DONE}
-          title="Done"
+          title="Done (ẩn sau khi hoàn thành)"
           tasks={grouped[COL.DONE]}
           usersById={usersById}
           onOpenTask={onOpenTask}
