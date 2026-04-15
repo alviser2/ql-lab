@@ -10,7 +10,6 @@ import { PriorityTag } from '@/components/PriorityTag'
 import { DeadlineBadge } from '@/components/DeadlineBadge'
 import { UserAvatar } from '@/components/UserAvatar'
 import * as taskService from '@/services/taskService'
-import { useTaskStore } from '@/store/taskStore'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { QuickReportModal } from '@/features/tasks/staff/QuickReportModal'
@@ -40,82 +39,105 @@ export function TaskDetailDrawer({
   onClose: () => void
 }) {
   const qc = useQueryClient()
-  const fetchTasks = useTaskStore((s) => s.fetchTasks)
-  const assignTask = useTaskStore((s) => s.assignTask)
   const me = useAuthStore((s) => s.user)
   const usersQuery = useUsersQuery()
   const users = usersQuery.data ?? []
   const [reportOpen, setReportOpen] = useState(false)
 
+  // Tính toán trước khi early return (để hooks gọi cùng thứ tự)
+  const assignee = useMemo(() => {
+    if (!task) return null
+    return task.assigneeId ? usersById.get(task.assigneeId) ?? null : null
+  }, [task, usersById])
+
+  const creator = useMemo(() => {
+    if (!task) return undefined
+    return usersById.get(task.createdById)
+  }, [task, usersById])
+
+  const assigner = useMemo(() => {
+    if (!task) return undefined
+    return usersById.get(task.assignedById ?? task.createdById)
+  }, [task, usersById])
+
+  const assignOptions = useMemo(() => {
+    if (!me || !task) return []
+    if (
+      me.role !== 'r-director' &&
+      me.role !== 'r-vice-director' &&
+      me.role !== 'r-dept-head'
+    ) {
+      return []
+    }
+    return users.filter((u) => {
+      if (!canAssignTo(me, u)) return false
+      if (me.role === 'r-director') return true
+      if (me.role === 'r-dept-head') {
+        return u.departmentId === task.departmentId
+      }
+      return (
+        u.departmentId === task.departmentId &&
+        (me.managedDepartmentIds?.includes(task.departmentId) ?? false)
+      )
+    })
+  }, [me, task, users])
+
+  const prog = useMemo(() => {
+    if (!task) return { childCount: 0, completedCount: 0, inProgressCount: 0, pendingReportCount: 0 }
+    return taskProgress(tasks, task.id)
+  }, [task, tasks])
+
+  const imAssignee = useMemo(() => me?.id === task?.assigneeId, [me, task])
+  const canReport = useMemo(
+    () => imAssignee && (task?.status === 'NEW' || task?.status === 'IN_PROGRESS'),
+    [imAssignee, task],
+  )
+
+  const completeDisabled = useMemo(() => {
+    if (!task) return false
+    return !canSetCompletedFromStatus(task.status) || !canMarkTaskComplete(task, tasks)
+  }, [task, tasks])
+
+  // Early return sau khi đã gọi tất cả hooks
   if (!task) return null
-
-  const current = task
-
-  const assignee = current.assigneeId
-    ? usersById.get(current.assigneeId) ?? null
-    : null
-  const creator = usersById.get(current.createdById)
-  const assigner = usersById.get(
-    current.assignedById ?? current.createdById,
-  )
-
-  const assignOptions = useMemo(
-    () =>
-      me &&
-      (me.role === 'r-director' ||
-        me.role === 'r-vice-director' ||
-        me.role === 'r-dept-head')
-        ? users.filter((u) => {
-            if (!canAssignTo(me, u)) return false
-            if (me.role === 'r-director') return true
-            if (me.role === 'r-dept-head') {
-              return u.departmentId === current.departmentId
-            }
-            return (
-              u.departmentId === current.departmentId &&
-              (me.managedDepartmentIds?.includes(current.departmentId) ?? false)
-            )
-          })
-        : [],
-    [me, users, current.departmentId],
-  )
-
-  const prog = taskProgress(tasks, current.id)
-  const imAssignee = me?.id === current.assigneeId
-  const canReport =
-    imAssignee &&
-    (current.status === 'NEW' || current.status === 'IN_PROGRESS')
 
   async function setAssignee(id: string | null) {
     try {
-      await assignTask(current.id, id)
+      await taskService.assignTask(task!.id, id)
       await qc.invalidateQueries({ queryKey: ['tasks'] })
-      await fetchTasks()
       toast.success('Đã cập nhật người thực hiện')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không giao được việc')
+      const err = e as Error & { code?: string }
+      const code = err.code || err.message
+      if (code === 'FORBIDDEN_ASSIGN') {
+        toast.error('Bạn không có quyền giao lại việc này')
+      } else if (code === 'ASSIGN_OVER_LEVEL') {
+        toast.error('Không được giao việc vượt cấp')
+      } else {
+        toast.error(err.message || 'Không giao được việc')
+      }
     }
   }
 
   async function setStatus(next: TaskStatus) {
     try {
-      await taskService.updateTask(current.id, { status: next })
+      await taskService.updateTask(task!.id, { status: next })
       await qc.invalidateQueries({ queryKey: ['tasks'] })
-      await fetchTasks()
       toast.success('Đã cập nhật trạng thái')
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Lỗi cập nhật'
-      if (msg === 'CHILDREN_NOT_DONE') {
+      const err = e as Error & { code?: string }
+      const code = err.code || err.message
+      if (code === 'CHILDREN_NOT_DONE') {
         toast.error('Chưa hoàn thành hết việc con')
-      } else if (msg === 'INVALID_STATUS_FLOW') {
+      } else if (code === 'INVALID_STATUS_FLOW') {
         toast.error('Luồng trạng thái không hợp lệ')
-      } else toast.error(msg)
+      } else if (code === 'USE_REPORT_FLOW') {
+        toast.error('Người nhận việc cần gửi báo cáo để xin duyệt hoàn thành')
+      } else {
+        toast.error(err.message || 'Lỗi cập nhật')
+      }
     }
   }
-
-  const completeDisabled =
-    !canSetCompletedFromStatus(current.status) ||
-    !canMarkTaskComplete(current, tasks)
 
   return (
     <>
@@ -124,36 +146,35 @@ export function TaskDetailDrawer({
           <p className="text-sm text-slate-500">Đang tải dữ liệu người dùng…</p>
         )}
         {usersQuery.isError && (
-          <p className="text-sm text-red-600">Không tải được danh sách người dùng.</p>
+          <p className="text-sm text-red-600">Không tải được dữ liệu người dùng.</p>
         )}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-slate-900">
-            {current.title}
+            {task.title}
           </h3>
-          {current.description && (
-            <p className="text-sm text-slate-600">{current.description}</p>
+          {task.description && (
+            <p className="text-sm text-slate-600">{task.description}</p>
           )}
           <div className="flex flex-wrap gap-2">
-            <StatusBadge status={current.status} />
-            <PriorityTag priority={current.priority} />
-            <DeadlineBadge deadline={current.deadline} />
+            <StatusBadge status={task.status} />
+            <PriorityTag priority={task.priority} />
+            <DeadlineBadge deadline={task.deadline} />
           </div>
 
-          {current.lastRejectionReason &&
-            current.status === 'IN_PROGRESS' && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-                <p className="font-semibold">Báo cáo bị từ chối</p>
-                <p className="mt-1">{current.lastRejectionReason}</p>
-                <p className="mt-2 text-xs opacity-90">
-                  Cập nhật lại công việc và gửi báo cáo mới lên người giao.
-                </p>
-              </div>
-            )}
+          {task.lastRejectionReason && task.status === 'IN_PROGRESS' && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+              <p className="font-semibold">Báo cáo bị từ chối</p>
+              <p className="mt-1">{task.lastRejectionReason}</p>
+              <p className="mt-2 text-xs opacity-90">
+                Cập nhật lại công việc và gửi báo cáo mới lên người giao.
+              </p>
+            </div>
+          )}
 
-          {current.status === 'PENDING_APPROVAL' && current.lastReportSummary && (
+          {task.status === 'PENDING_APPROVAL' && task.lastReportSummary && (
             <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-950">
               <p className="font-semibold">Báo cáo đã gửi</p>
-              <p className="mt-1">{current.lastReportSummary}</p>
+              <p className="mt-1">{task.lastReportSummary}</p>
             </div>
           )}
 
@@ -162,10 +183,10 @@ export function TaskDetailDrawer({
             <div className="mt-1 flex items-center gap-2">
               {assigner && <UserAvatar name={assigner.name} size="sm" />}
               <span className="font-medium text-slate-800">
-                {assigner?.name ?? current.assignedById ?? '—'}
+                {assigner?.name ?? task.assignedById ?? '—'}
               </span>
             </div>
-            {creator && creator.id !== (current.assignedById ?? current.createdById) && (
+            {creator && creator.id !== (task.assignedById ?? task.createdById) && (
               <>
                 <p className="mt-3 text-slate-500">Người tạo trên hệ thống</p>
                 <div className="mt-1 flex items-center gap-2">
@@ -213,10 +234,8 @@ export function TaskDetailDrawer({
               Giao cho (khoa)
               <select
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
-                value={current.assigneeId ?? ''}
-                onChange={(e) =>
-                  void setAssignee(e.target.value || null)
-                }
+                value={task.assigneeId ?? ''}
+                onChange={(e) => void setAssignee(e.target.value || null)}
               >
                 <option value="">— Chưa giao —</option>
                 {assignOptions.map((u) => (
@@ -244,7 +263,7 @@ export function TaskDetailDrawer({
             </p>
             <div className="flex flex-wrap gap-2">
               {nextActions.map((a) => {
-                if (!a.from.includes(current.status)) return null
+                if (!a.from.includes(task.status)) return null
                 const isComplete = a.to === 'COMPLETED'
                 const disabled = isComplete && completeDisabled
                 if (isComplete && imAssignee) {
@@ -285,7 +304,7 @@ export function TaskDetailDrawer({
 
       <QuickReportModal
         open={reportOpen}
-        task={current}
+        task={task}
         onClose={() => setReportOpen(false)}
       />
     </>

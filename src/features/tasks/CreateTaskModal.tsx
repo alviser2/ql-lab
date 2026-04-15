@@ -4,15 +4,13 @@ import toast from 'react-hot-toast'
 import type { TaskPriority, User } from '@/types'
 import { Modal } from '@/components/Modal'
 import { useAuthStore } from '@/store/authStore'
-import { useTaskStore } from '@/store/taskStore'
 import { useUsersQuery } from '@/hooks/useUsersQuery'
 import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
+import { useTasksQuery } from '@/hooks/useTasksQuery'
 import { canAssignTo, deadlineAfterParent } from '@/utils/taskRules'
-import {
-  canCreateTask,
-  eligibleParentTasks,
-} from '@/utils/taskHierarchy'
+import { canCreateTask } from '@/utils/taskHierarchy'
 import { cn } from '@/utils/cn'
+import * as taskService from '@/services/taskService'
 
 // ──────────────────────────────────────────────────────────
 // Helpers
@@ -68,8 +66,8 @@ export function CreateTaskModal({
 }) {
   const qc = useQueryClient()
   const user = useAuthStore((s) => s.user)
-  const createTask = useTaskStore((s) => s.createTask)
-  const tasks = useTaskStore((s) => s.tasks)
+  const tasksQuery = useTasksQuery()
+  const tasks = tasksQuery.data ?? []
   const usersQuery = useUsersQuery()
   const departmentsQuery = useDepartmentsQuery()
   const users = usersQuery.data ?? []
@@ -121,10 +119,22 @@ export function CreateTaskModal({
   }, [open, defaultParentId, user?.departmentId, departments])
 
   // ── derived ──────────────────────────────────────────────
-  const parentOptions = useMemo(
-    () => eligibleParentTasks(user, tasks),
-    [tasks, user],
-  )
+  const parentOptions = useMemo(() => {
+    if (!user || user.role === 'r-staff') return []
+    if (user.role === 'r-director') return tasks
+    if (user.role === 'r-vice-director') {
+      // PGĐ thấy: việc được giao cho mình, việc trong khoa mình giám sát, hoặc việc mình giám sát
+      const managedDepts = new Set(user.managedDepartmentIds ?? [])
+      return tasks.filter(
+        (t) =>
+          t.assigneeId === user.id ||
+          t.overseenByViceDirectorId === user.id ||
+          (t.departmentId && managedDepts.has(t.departmentId)),
+      )
+    }
+    // Trưởng khoa: thấy việc trong khoa mình
+    return tasks.filter((t) => t.departmentId === user.departmentId)
+  }, [tasks, user])
 
   const parent = useMemo(
     () => (parentId ? tasks.find((t) => t.id === parentId) : null),
@@ -169,7 +179,7 @@ export function CreateTaskModal({
       return
     }
     try {
-      await createTask({
+      await taskService.createTask({
         title: title.trim(),
         parentId,
         departmentId,
@@ -188,10 +198,13 @@ export function CreateTaskModal({
       toast.success('Đã tạo công việc')
       onClose()
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Lỗi tạo việc'
-      if (msg === 'DEADLINE_AFTER_PARENT') {
+      const err = e as Error & { code?: string }
+      const code = err.code || err.message
+      if (code === 'DEADLINE_AFTER_PARENT') {
         toast.error('Hạn không được sau hạn công việc cha')
-      } else toast.error(msg)
+      } else {
+        toast.error(err.message || 'Lỗi tạo việc')
+      }
     }
   }
 
