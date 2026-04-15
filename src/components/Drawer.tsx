@@ -27,9 +27,9 @@ export function Drawer({
   return (
     <div
       className={cn(
-        'pointer-events-none fixed inset-0 z-50 flex transition',
+        'fixed inset-0 z-50 flex transition',
         side === 'right' ? 'justify-end' : 'justify-start',
-        open && 'pointer-events-auto',
+        open ? 'pointer-events-auto' : 'pointer-events-none',
       )}
       aria-hidden={!open}
     >
@@ -37,18 +37,25 @@ export function Drawer({
         type="button"
         aria-label="Đóng panel"
         className={cn(
-          'absolute inset-0 bg-slate-900/30 opacity-0 transition',
+          'absolute inset-0 z-0 bg-slate-900/30 opacity-0 transition',
           open && 'opacity-100',
         )}
         onClick={onClose}
       />
+
       <aside
         className={cn(
-          'relative h-full w-full max-w-md bg-white shadow-2xl ring-1 ring-slate-200 transition-transform duration-300',
+          'relative z-10 h-full w-full max-w-md pointer-events-auto bg-white shadow-2xl ring-1 ring-slate-200 transition-transform duration-300',
           side === 'right'
-            ? (open ? 'translate-x-0' : 'translate-x-full')
-            : (open ? 'translate-x-0' : '-translate-x-full'),
+            ? open
+              ? 'translate-x-0'
+              : 'translate-x-full'
+            : open
+              ? 'translate-x-0'
+              : '-translate-x-full',
         )}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           {title && (
@@ -56,8 +63,12 @@ export function Drawer({
           )}
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            onClick={(e) => {
+              e.stopPropagation()
+              onClose()
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="relative z-20 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
           >
             <X className="size-5" />
           </button>
