@@ -85,7 +85,7 @@ export function TaskNode({
           )}
         </div>
       </button>
-      {hover && (
+      {hover && onHoverAction && (
         <div className="absolute right-2 top-2 flex gap-1">
           <button
             type="button"
@@ -93,24 +93,22 @@ export function TaskNode({
             className="rounded-lg bg-slate-900/80 p-1.5 text-white shadow"
             onClick={(e) => {
               e.stopPropagation()
-              onHoverAction?.('view', task)
+              onHoverAction('view', task)
             }}
           >
             <Eye className="size-4" />
           </button>
-          {onHoverAction && (
-            <button
-              type="button"
-              title="Tạo việc con"
-              className="rounded-lg bg-medical-600 p-1.5 text-white shadow"
-              onClick={(e) => {
-                e.stopPropagation()
-                onHoverAction('add', task)
-              }}
-            >
-              <Plus className="size-4" />
-            </button>
-          )}
+          <button
+            type="button"
+            title="Tạo việc con"
+            className="rounded-lg bg-medical-600 p-1.5 text-white shadow"
+            onClick={(e) => {
+              e.stopPropagation()
+              onHoverAction('add', task)
+            }}
+          >
+            <Plus className="size-4" />
+          </button>
         </div>
       )}
     </div>
