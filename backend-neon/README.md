@@ -33,6 +33,7 @@ Health check:
 Demo account (seed sẵn):
 
 - `director / 123456`
+- `admin / Admin@123456` (**admin hệ thống để quản trị user/role**)
 - `vicedir / 123456`
 - `tk_noi / 123456`
 - `tk_nct / 123456`

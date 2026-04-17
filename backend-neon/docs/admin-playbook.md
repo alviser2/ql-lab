@@ -2,6 +2,16 @@
 
 Tài liệu nhanh để quản trị user/role theo phân cấp.
 
+## 0) Tài khoản admin mặc định
+
+Sau khi chạy `db/schema.sql`, hệ thống có sẵn:
+
+- username: `admin`
+- password: `Admin@123456`
+- role: `r-director`
+
+> Khuyến nghị: đăng nhập lần đầu rồi đổi mật khẩu ngay qua API `PATCH /api/admin/users/:id/password`.
+
 ## 1) Khuyến nghị dùng API admin (an toàn hơn)
 
 > Chỉ tài khoản `r-director` mới gọi được các API này.

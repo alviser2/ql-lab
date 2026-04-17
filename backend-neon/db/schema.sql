@@ -236,9 +236,12 @@ set name = excluded.name,
 
 -- hash for 123456
 -- $2b$10$hphZd9gb3mmhtY6UMh3BDORPHlaszgaMnQOSeMJ5mxtXUYpZQZ.by
+-- hash for Admin@123456
+-- $2b$10$C19EOqtE9jtz6XJm7BjooOORmyuJOiWRwAQgUy6sp0Yfy7VQqSQlC
 insert into users (id, username, full_name, password_hash, role_id, dept_id)
 values
   ('u-director', 'director', 'BS. Nguyễn Minh Đức', '$2b$10$hphZd9gb3mmhtY6UMh3BDORPHlaszgaMnQOSeMJ5mxtXUYpZQZ.by', 'r-director', null),
+  ('u-admin', 'admin', 'Quản trị hệ thống', '$2b$10$C19EOqtE9jtz6XJm7BjooOORmyuJOiWRwAQgUy6sp0Yfy7VQqSQlC', 'r-director', null),
   ('u-vicedir', 'vicedir', 'BS. Trần Thu Hà', '$2b$10$hphZd9gb3mmhtY6UMh3BDORPHlaszgaMnQOSeMJ5mxtXUYpZQZ.by', 'r-vice-director', null),
   ('u-head-noi', 'tk_noi', 'BS. Lê Quang Huy', '$2b$10$hphZd9gb3mmhtY6UMh3BDORPHlaszgaMnQOSeMJ5mxtXUYpZQZ.by', 'r-dept-head', 'dept-noi'),
   ('u-head-ngoai', 'tk_nct', 'BS. Phạm Đức An', '$2b$10$hphZd9gb3mmhtY6UMh3BDORPHlaszgaMnQOSeMJ5mxtXUYpZQZ.by', 'r-dept-head', 'dept-ngoai'),
@@ -251,6 +254,18 @@ set username = excluded.username,
     password_hash = excluded.password_hash,
     role_id = excluded.role_id,
     dept_id = excluded.dept_id,
+    is_active = true,
+    updated_at = now();
+
+-- upsert by username for safe rerun (in case id differs)
+insert into users (id, username, full_name, password_hash, role_id, dept_id, is_active)
+values ('u-admin', 'admin', 'Quản trị hệ thống', '$2b$10$C19EOqtE9jtz6XJm7BjooOORmyuJOiWRwAQgUy6sp0Yfy7VQqSQlC', 'r-director', null, true)
+on conflict (username) do update
+set full_name = excluded.full_name,
+    password_hash = excluded.password_hash,
+    role_id = excluded.role_id,
+    dept_id = excluded.dept_id,
+    is_active = true,
     updated_at = now();
 
 insert into vice_director_departments (vice_director_id, department_id)
