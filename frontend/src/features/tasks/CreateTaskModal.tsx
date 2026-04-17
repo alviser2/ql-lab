@@ -98,6 +98,7 @@ export function CreateTaskModal({
   const [phuongPhapLam, setPhuongPhapLam] = useState('')
   /** Dự kiến kết quả */
   const [dukienKetQua, setDukienKetQua] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // ── reset on open ────────────────────────────────────────
   useEffect(() => {
@@ -109,6 +110,7 @@ export function CreateTaskModal({
     setBoPhanPhoiHopIds([])
     setPhuongPhapLam('')
     setDukienKetQua('')
+    setIsSubmitting(false)
     setPriority('MEDIUM')
     const d = new Date()
     d.setDate(d.getDate() + 14)
@@ -166,6 +168,8 @@ export function CreateTaskModal({
 
   // ── submit ───────────────────────────────────────────────
   async function submit() {
+    if (isSubmitting) return
+
     if (!user || !title.trim()) {
       toast.error('Nhập tiêu đề công việc')
       return
@@ -178,22 +182,32 @@ export function CreateTaskModal({
       toast.error('Hạn không được sau hạn công việc cha')
       return
     }
+
+    setIsSubmitting(true)
     try {
-      await taskService.createTask({
-        title: title.trim(),
-        parentId,
-        departmentId,
-        assigneeId,
-        overseenByViceDirectorId: null,
-        createdById: user.id,
-        assignedById: user.id,
-        priority,
-        deadline: new Date(deadline).toISOString(),
-        thuongTrucId: thuongTrucId || null,
-        boPhanPhoiHopIds,
-        phuongPhapLam: phuongPhapLam.trim() || null,
-        dukienKetQua: dukienKetQua.trim() || null,
-      })
+      const idemKey =
+        (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+      await taskService.createTask(
+        {
+          title: title.trim(),
+          parentId,
+          departmentId,
+          assigneeId,
+          overseenByViceDirectorId: null,
+          createdById: user.id,
+          assignedById: user.id,
+          priority,
+          deadline: new Date(deadline).toISOString(),
+          thuongTrucId: thuongTrucId || null,
+          boPhanPhoiHopIds,
+          phuongPhapLam: phuongPhapLam.trim() || null,
+          dukienKetQua: dukienKetQua.trim() || null,
+        },
+        { idempotencyKey: idemKey },
+      )
       await qc.invalidateQueries({ queryKey: ['tasks'] })
       toast.success('Đã tạo công việc')
       onClose()
@@ -205,6 +219,8 @@ export function CreateTaskModal({
       } else {
         toast.error(err.message || 'Lỗi tạo việc')
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -483,17 +499,18 @@ export function CreateTaskModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            disabled={isSubmitting}
+            className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
           >
             Huỷ
           </button>
           <button
             type="button"
             onClick={() => void submit()}
-            disabled={!title.trim() || !!deadlineInvalid || !!assignBlocked}
+            disabled={isSubmitting || !title.trim() || !!deadlineInvalid || !!assignBlocked}
             className="rounded-xl bg-medical-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-medical-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Tạo công việc
+            {isSubmitting ? 'Đang tạo...' : 'Tạo công việc'}
           </button>
         </div>
       </div>

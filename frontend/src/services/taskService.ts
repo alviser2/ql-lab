@@ -86,37 +86,48 @@ export async function getTaskHistory(): Promise<Task[]> {
   return res.data.map(normalizeTask)
 }
 
-export async function createTask(input: {
-  title: string
-  description?: string
-  parentId: string | null
-  departmentId: string
-  assigneeId: string | null
-  overseenByViceDirectorId: string | null
-  createdById: string
-  assignedById: string
-  priority: TaskPriority
-  deadline: string
-  thuongTrucId?: string | null
-  boPhanPhoiHopIds?: string[]
-  phuongPhapLam?: string | null
-  dukienKetQua?: string | null
-}): Promise<Task> {
-  const res = await api.post('/tasks', {
-    title: input.title,
-    description: input.description,
-    meeting_id: null,
-    parent_task_id: input.parentId,
-    department_id: input.departmentId,
-    priority: input.priority,
-    assignee_id: input.assigneeId,
-    monitor_id: input.thuongTrucId || null,
-    deadline: input.deadline,
-    thuong_truc_id: input.thuongTrucId,
-    bo_phan_phoi_hop_ids: input.boPhanPhoiHopIds,
-    phuong_phap_lam: input.phuongPhapLam,
-    dukien_ket_qua: input.dukienKetQua,
-  })
+export async function createTask(
+  input: {
+    title: string
+    description?: string
+    parentId: string | null
+    departmentId: string
+    assigneeId: string | null
+    overseenByViceDirectorId: string | null
+    createdById: string
+    assignedById: string
+    priority: TaskPriority
+    deadline: string
+    thuongTrucId?: string | null
+    boPhanPhoiHopIds?: string[]
+    phuongPhapLam?: string | null
+    dukienKetQua?: string | null
+  },
+  options?: { idempotencyKey?: string },
+): Promise<Task> {
+  const res = await api.post(
+    '/tasks',
+    {
+      title: input.title,
+      description: input.description,
+      meeting_id: null,
+      parent_task_id: input.parentId,
+      department_id: input.departmentId,
+      priority: input.priority,
+      assignee_id: input.assigneeId,
+      monitor_id: input.thuongTrucId || null,
+      deadline: input.deadline,
+      thuong_truc_id: input.thuongTrucId,
+      bo_phan_phoi_hop_ids: input.boPhanPhoiHopIds,
+      phuong_phap_lam: input.phuongPhapLam,
+      dukien_ket_qua: input.dukienKetQua,
+    },
+    {
+      headers: options?.idempotencyKey
+        ? { 'x-idempotency-key': options.idempotencyKey }
+        : undefined,
+    },
+  )
   return normalizeTask(res.data)
 }
 

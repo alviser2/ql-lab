@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { genId, query } from '../db.js'
+import { genId, query, withTransaction } from '../db.js'
 import { authenticate } from '../middleware/auth.js'
 import { badRequest, forbidden, notFound } from '../lib/http.js'
 import { asyncHandler } from '../lib/async.js'
@@ -48,8 +48,9 @@ async function getTaskById(taskId) {
   return rows[0] || null
 }
 
-async function addHistory(taskId, userId, oldStatus, newStatus, comment) {
-  await query(
+async function addHistory(taskId, userId, oldStatus, newStatus, comment, client = null) {
+  const runner = client ? client.query.bind(client) : query
+  await runner(
     `
       insert into task_history (id, task_id, changed_by, old_status, new_status, comment)
       values ($1, $2, $3, $4, $5, $6)
@@ -451,45 +452,105 @@ router.post(
 
     const extendedNote = extendedParts.length > 0 ? extendedParts.join(' | ') : null
 
-    const id = genId('t')
-    await query(
-      `
-      insert into tasks (
-        id, meeting_id, parent_task_id, title, description, priority,
-        creator_id, assignee_id, monitor_id, department_id,
-        overseen_by_vice_director_id, assigned_by_id,
-        pending_approval_reviewer_id, approval_source,
-        deadline, status, report_summary, extended_note
-      )
-      values (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10,
-        $11, $12,
-        null, null,
-        $13, 'NEW', null, $14
-      )
-    `,
-      [
-        id,
-        meeting_id || null,
-        parent_task_id || null,
-        title,
-        description || null,
-        priority || 'MEDIUM',
-        userId,
-        assignee_id || null,
-        monitor_id || null,
-        deptId,
-        overseerId,
-        userId,
-        deadline,
-        extendedNote,
-      ],
-    )
+    const idemKeyRaw = req.headers['x-idempotency-key']
+    const idemKey = Array.isArray(idemKeyRaw) ? idemKeyRaw[0] : idemKeyRaw
 
-    await addHistory(id, userId, null, 'NEW', 'Tạo công việc')
+    const normalizedTitle = String(title).trim()
+    const normalizedDescription = description || null
+    const normalizedMeetingId = meeting_id || null
+    const normalizedParentId = parent_task_id || null
+    const normalizedAssigneeId = assignee_id || null
+    const normalizedMonitorId = monitor_id || null
+    const normalizedPriority = priority || 'MEDIUM'
 
-    const created = await getTaskById(id)
+    const createResult = await withTransaction(async (client) => {
+      if (idemKey) {
+        const dupRs = await client.query(
+          `
+          select t.id
+          from tasks t
+          where t.creator_id = $1
+            and t.status = 'NEW'
+            and t.archived = false
+            and t.created_at > now() - interval '45 seconds'
+            and t.title = $2
+            and t.description is not distinct from $3
+            and t.meeting_id is not distinct from $4
+            and t.parent_task_id is not distinct from $5
+            and t.priority = $6
+            and t.assignee_id is not distinct from $7
+            and t.monitor_id is not distinct from $8
+            and t.department_id = $9
+            and t.deadline = $10::timestamptz
+            and t.extended_note is not distinct from $11
+          order by t.created_at desc
+          limit 1
+        `,
+          [
+            userId,
+            normalizedTitle,
+            normalizedDescription,
+            normalizedMeetingId,
+            normalizedParentId,
+            normalizedPriority,
+            normalizedAssigneeId,
+            normalizedMonitorId,
+            deptId,
+            deadline,
+            extendedNote,
+          ],
+        )
+
+        if (dupRs.rowCount > 0) {
+          return { id: dupRs.rows[0].id, duplicated: true }
+        }
+      }
+
+      const newId = genId('t')
+      await client.query(
+        `
+        insert into tasks (
+          id, meeting_id, parent_task_id, title, description, priority,
+          creator_id, assignee_id, monitor_id, department_id,
+          overseen_by_vice_director_id, assigned_by_id,
+          pending_approval_reviewer_id, approval_source,
+          deadline, status, report_summary, extended_note
+        )
+        values (
+          $1, $2, $3, $4, $5, $6,
+          $7, $8, $9, $10,
+          $11, $12,
+          null, null,
+          $13, 'NEW', null, $14
+        )
+      `,
+        [
+          newId,
+          normalizedMeetingId,
+          normalizedParentId,
+          normalizedTitle,
+          normalizedDescription,
+          normalizedPriority,
+          userId,
+          normalizedAssigneeId,
+          normalizedMonitorId,
+          deptId,
+          overseerId,
+          userId,
+          deadline,
+          extendedNote,
+        ],
+      )
+
+      await addHistory(newId, userId, null, 'NEW', 'Tạo công việc', client)
+      return { id: newId, duplicated: false }
+    })
+
+    const created = await getTaskById(createResult.id)
+    if (createResult.duplicated) {
+      return res.status(200).json(created)
+    }
+
     res.status(201).json(created)
   }),
 )
