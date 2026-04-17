@@ -224,4 +224,63 @@ router.patch(
   }),
 )
 
+router.delete(
+  '/users/:id',
+  asyncHandler(async (req, res) => {
+    const targetId = req.params.id
+
+    if (req.userId === targetId) {
+      return badRequest(res, 'SELF_DELETE_FORBIDDEN', 'Không thể tự xóa tài khoản đang đăng nhập')
+    }
+
+    const targetRs = await query(
+      'select id, username, role_id, is_active from users where id = $1 limit 1',
+      [targetId],
+    )
+    const target = targetRs.rows[0]
+
+    if (!target) return notFound(res, 'USER_NOT_FOUND', 'User không tồn tại')
+
+    if (target.role_id === 'r-director' && target.is_active) {
+      const directorCountRs = await query(
+        `
+        select count(*)::int as c
+        from users
+        where role_id = 'r-director' and is_active = true and id <> $1
+      `,
+        [targetId],
+      )
+      const remainDirectors = directorCountRs.rows[0]?.c || 0
+      if (remainDirectors < 1) {
+        return badRequest(
+          res,
+          'LAST_DIRECTOR_FORBIDDEN',
+          'Không thể xóa Giám đốc cuối cùng của hệ thống',
+        )
+      }
+    }
+
+    const deletedUsername = `${target.username}__deleted_${Date.now()}`
+
+    await withTransaction(async (client) => {
+      await client.query(
+        `
+        update users
+        set
+          is_active = false,
+          username = $1,
+          full_name = concat(full_name, ' (đã xóa)'),
+          updated_at = now()
+        where id = $2
+      `,
+        [deletedUsername, targetId],
+      )
+
+      await client.query('delete from vice_director_departments where vice_director_id = $1', [targetId])
+    })
+
+    res.json({ ok: true, message: 'Đã xóa tài khoản (soft delete)' })
+  }),
+)
+
 export default router

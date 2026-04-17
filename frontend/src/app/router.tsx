@@ -8,6 +8,7 @@ import { MeetingsPage } from '@/pages/MeetingsPage'
 import { MeetingDetailPage } from '@/pages/MeetingDetailPage'
 import { TasksPage } from '@/pages/TasksPage'
 import { TaskHistoryPage } from '@/pages/TaskHistoryPage'
+import { AdminPage } from '@/pages/AdminPage'
 
 export function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export function AppRouter() {
           <Route path="kpi" element={<KPIPage />} />
           <Route path="meetings" element={<MeetingsPage />} />
           <Route path="meetings/:meetingId" element={<MeetingDetailPage />} />
+          <Route path="admin" element={<AdminPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

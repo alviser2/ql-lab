@@ -1,5 +1,8 @@
 # Tách FE/BE để deploy Vercel
 
+> Lưu ý: tài liệu này là bản cũ cho backend SQLite (`backend/`).
+> Bản production mới dùng Neon nằm ở: **`backend-neon/README.md`**.
+
 Mình đã tách code thành 2 thư mục độc lập:
 
 - `frontend/` → React + Vite

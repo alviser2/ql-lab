@@ -8,6 +8,7 @@ import {
   Menu,
   PieChart,
   Users,
+  Shield,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUiStore } from '@/store/uiStore'
@@ -18,7 +19,7 @@ import { canCreateTask } from '@/utils/taskHierarchy'
 import { CreateTaskModal } from '@/features/tasks/CreateTaskModal'
 import { cn } from '@/utils/cn'
 
-const nav = [
+const navBase = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/tasks', label: 'Tasks', icon: ClipboardList, end: true },
   { to: '/tasks/history', label: 'Lịch sử công việc', icon: ClipboardList },
@@ -38,6 +39,16 @@ export function MainLayout() {
 
   const { data: tasks = [] } = useTasksQuery()
   useFakeRealtime(!!user)
+
+  const nav = useMemo(() => {
+    if (user?.role === 'r-director') {
+      return [
+        ...navBase,
+        { to: '/admin', label: 'Quản trị', icon: Shield },
+      ]
+    }
+    return navBase
+  }, [user?.role])
 
   const badge = useMemo(() => {
     if (!user) return 0

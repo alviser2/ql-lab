@@ -60,7 +60,17 @@ Trong project frontend, đặt:
 
 sau đó redeploy frontend.
 
-## 5) Quản trị user/role sau này
+## 5) Trang FE quản trị (Admin)
+
+Frontend đã có trang `/admin` (chỉ role `r-director` thấy trong menu) để:
+
+- tạo tài khoản
+- đổi mật khẩu
+- đổi role/phân cấp
+- khóa/mở tài khoản
+- xóa tài khoản (soft delete)
+
+## 6) Quản trị user/role sau này
 
 Xem file `docs/admin-playbook.md` để có câu SQL mẫu:
 
