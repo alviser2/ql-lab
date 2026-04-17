@@ -1,6 +1,12 @@
 import api from '@/lib/api'
 import type { Department } from '@/types'
 
+export interface CreateDepartmentInput {
+  name: string
+  code: string
+  type?: 'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH'
+}
+
 function normalizeDepartment(d: any): Department {
   return {
     id: d.id,
@@ -13,4 +19,9 @@ function normalizeDepartment(d: any): Department {
 export async function getDepartments(): Promise<Department[]> {
   const res = await api.get('/departments')
   return res.data.map(normalizeDepartment)
+}
+
+export async function createDepartment(input: CreateDepartmentInput): Promise<Department> {
+  const res = await api.post('/departments', input)
+  return normalizeDepartment(res.data)
 }

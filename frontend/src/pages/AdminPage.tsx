@@ -10,6 +10,7 @@ import {
   updateAdminUserRole,
 } from '@/services/adminService'
 import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
+import { createDepartment } from '@/services/departmentService'
 import { useAuthStore } from '@/store/authStore'
 import type { Role } from '@/types'
 import { Modal } from '@/components/Modal'
@@ -40,6 +41,7 @@ export function AdminPage() {
   const departments = departmentsQuery.data ?? []
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState<AdminUser | null>(null)
   const [roleOpen, setRoleOpen] = useState<AdminUser | null>(null)
 
@@ -52,6 +54,10 @@ export function AdminPage() {
 
   const [newPassword, setNewPassword] = useState('')
 
+  const [newDepartmentName, setNewDepartmentName] = useState('')
+  const [newDepartmentCode, setNewDepartmentCode] = useState('')
+  const [newDepartmentType, setNewDepartmentType] = useState<'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH'>('LAM_SANG')
+
   const [editRoleId, setEditRoleId] = useState<Role>('r-staff')
   const [editDeptId, setEditDeptId] = useState<string>('')
   const [editManagedDeptIds, setEditManagedDeptIds] = useState<string[]>([])
@@ -62,6 +68,7 @@ export function AdminPage() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ['admin-users'] }),
       qc.invalidateQueries({ queryKey: ['users'] }),
+      qc.invalidateQueries({ queryKey: ['departments'] }),
     ])
   }
 
@@ -132,6 +139,19 @@ export function AdminPage() {
     onError: (e) => toast.error(parseErrorMessage(e)),
   })
 
+  const createDepartmentMut = useMutation({
+    mutationFn: createDepartment,
+    onSuccess: async () => {
+      toast.success('Đã tạo khoa mới')
+      setCreateDepartmentOpen(false)
+      setNewDepartmentName('')
+      setNewDepartmentCode('')
+      setNewDepartmentType('LAM_SANG')
+      await refreshAll()
+    },
+    onError: (e) => toast.error(parseErrorMessage(e)),
+  })
+
   const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data])
 
   if (!isDirector) {
@@ -146,17 +166,26 @@ export function AdminPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Quản trị tài khoản & phân quyền</h1>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="rounded-xl bg-medical-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-medical-700"
-        >
-          + Tạo tài khoản
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setCreateDepartmentOpen(true)}
+            className="rounded-xl border border-medical-300 bg-white px-4 py-2 text-sm font-semibold text-medical-700 hover:bg-medical-50"
+          >
+            + Tạo khoa
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="rounded-xl bg-medical-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-medical-700"
+          >
+            + Tạo tài khoản
+          </button>
+        </div>
       </div>
 
       <p className="text-sm text-slate-600">
-        Trang này cho phép tạo user, đổi mật khẩu, đổi role/phân cấp, khóa/mở và xóa tài khoản.
+        Trang này cho phép tạo khoa mới, tạo user, đổi mật khẩu, đổi role/phân cấp, khóa/mở và xóa tài khoản.
       </p>
 
       {usersQuery.isLoading ? (
@@ -265,6 +294,70 @@ export function AdminPage() {
           </table>
         </div>
       )}
+
+      <Modal open={createDepartmentOpen} onClose={() => setCreateDepartmentOpen(false)} title="Tạo khoa mới" size="md">
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            createDepartmentMut.mutate({
+              name: newDepartmentName.trim(),
+              code: newDepartmentCode.trim().toUpperCase(),
+              type: newDepartmentType,
+            })
+          }}
+        >
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Tên khoa</span>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2"
+              value={newDepartmentName}
+              onChange={(e) => setNewDepartmentName(e.target.value)}
+              required
+            />
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Mã khoa</span>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 uppercase"
+              value={newDepartmentCode}
+              onChange={(e) => setNewDepartmentCode(e.target.value)}
+              required
+            />
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Loại khoa</span>
+            <select
+              className="w-full rounded-xl border border-slate-200 px-3 py-2"
+              value={newDepartmentType}
+              onChange={(e) => setNewDepartmentType(e.target.value as 'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH')}
+            >
+              <option value="LAM_SANG">Lâm sàng</option>
+              <option value="CAN_LAM_SANG">Cận lâm sàng</option>
+              <option value="HANH_CHINH">Hành chính</option>
+            </select>
+          </label>
+
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
+              onClick={() => setCreateDepartmentOpen(false)}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="rounded-xl bg-medical-600 px-4 py-2 text-sm font-semibold text-white hover:bg-medical-700 disabled:opacity-50"
+              disabled={createDepartmentMut.isPending}
+            >
+              {createDepartmentMut.isPending ? 'Đang tạo...' : 'Tạo khoa'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Tạo tài khoản" size="md">
         <form
