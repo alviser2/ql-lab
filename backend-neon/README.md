@@ -14,8 +14,10 @@ Backend mới tách riêng cho Neon, giữ API path giống frontend đang gọi
 
 1. Vào Neon, tạo project/database mới.
 2. Mở **SQL Editor**.
-3. Copy toàn bộ file `db/schema.sql` và chạy.
-4. Lấy `DATABASE_URL` (connection string có `sslmode=require`).
+3. Nếu muốn làm sạch hoàn toàn dữ liệu cũ: chạy `db/reset.sql` trước.
+4. Copy toàn bộ file `db/schema.sql` và chạy.
+5. (Khuyến nghị bảo mật) chạy thêm `db/roles.sql` để tạo role runtime/readonly.
+6. Lấy `DATABASE_URL` (connection string có `sslmode=require`).
 
 ## 2) Chạy local
 
@@ -45,7 +47,7 @@ Demo account (seed sẵn):
 - Framework: Other.
 - Build command: để trống (Vercel Node serverless sẽ dùng `server/index.js`).
 - Thêm env ở Vercel:
-  - `DATABASE_URL`
+  - `DATABASE_URL` (**nên dùng user `app_runtime`, không dùng `neondb_owner`**)
   - `JWT_SECRET`
   - `CORS_ORIGINS` (ví dụ domain frontend Vercel)
   - `NODE_ENV=production`

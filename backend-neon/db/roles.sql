@@ -1,0 +1,51 @@
+-- Tạo role DB theo mô hình owner/migrator/runtime/readonly
+-- Chạy bằng owner (ví dụ: neondb_owner) SAU KHI đã chạy schema.sql.
+-- Thay các mật khẩu mẫu trước khi chạy production.
+
+begin;
+
+-- 1) Runtime role: backend API dùng role này
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_runtime') THEN
+    CREATE ROLE app_runtime LOGIN PASSWORD 'CHANGE_ME_RUNTIME_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+  ELSE
+    ALTER ROLE app_runtime WITH LOGIN PASSWORD 'CHANGE_ME_RUNTIME_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+  END IF;
+END$$;
+
+-- 2) Read-only role: cho BI/report nếu cần
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_readonly') THEN
+    CREATE ROLE app_readonly LOGIN PASSWORD 'CHANGE_ME_READONLY_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+  ELSE
+    ALTER ROLE app_readonly WITH LOGIN PASSWORD 'CHANGE_ME_READONLY_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+  END IF;
+END$$;
+
+-- Quyền runtime
+GRANT CONNECT ON DATABASE neondb TO app_runtime;
+GRANT USAGE ON SCHEMA public TO app_runtime;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_runtime;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO app_runtime;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_runtime;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO app_runtime;
+
+-- Quyền readonly
+GRANT CONNECT ON DATABASE neondb TO app_readonly;
+GRANT USAGE ON SCHEMA public TO app_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_readonly;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_readonly;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT ON TABLES TO app_readonly;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO app_readonly;
+
+commit;
+
+-- Sau đó đổi DATABASE_URL trên Vercel backend sang app_runtime.
