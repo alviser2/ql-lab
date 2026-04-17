@@ -24,7 +24,8 @@ export function TaskTree({
   const loadChildren = useCallback(async (parentId: string) => {
     setLoading((s) => new Set(s).add(parentId))
     try {
-      const kids = await taskService.getChildTasks(parentId)
+      const all = await taskService.getTasks()
+      const kids = all.filter((t) => t.parentId === parentId)
       setChildrenMap((m) => {
         if (m[parentId] !== undefined) return m
         return { ...m, [parentId]: kids }
@@ -63,7 +64,10 @@ export function TaskTree({
 
   const onHoverAction = useCallback(
     (action: 'view' | 'add', t: Task) => {
-      if (action === 'view') onSelectTask(t)
+      if (action === 'view') {
+        onSelectTask(t)
+        return
+      }
       if (action === 'add') {
         if (!canCreateTask(user)) {
           toast.error('Nhân viên không được tạo việc con')
@@ -98,9 +102,7 @@ export function TaskTree({
                   loadedChildCount={loadedChildCount}
                   onToggle={() => void toggle(task.id)}
                   onSelect={onSelectTask}
-                  onHoverAction={
-                    canCreateTask(user) ? onHoverAction : undefined
-                  }
+                  onHoverAction={onHoverAction}
                 />
                 {isExpanded && loaded && loaded.length > 0 && (
                   <RowTreeInner list={loaded} depth={depth + 1} />

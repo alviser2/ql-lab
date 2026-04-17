@@ -36,7 +36,6 @@ interface TaskState {
   assignTask: (
     taskId: string,
     assigneeId: string | null,
-    delegatedById?: string | null,
   ) => Promise<Task>
 }
 
@@ -62,12 +61,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     await get().fetchTasks()
     return created
   },
-  assignTask: async (taskId, assigneeId, delegatedById) => {
-    const updated = await taskService.assignTask(
-      taskId,
-      assigneeId,
-      delegatedById,
-    )
+  assignTask: async (taskId, assigneeId) => {
+    const updated = await taskService.assignTask(taskId, assigneeId)
     await get().fetchTasks()
     return updated
   },

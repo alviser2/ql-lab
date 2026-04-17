@@ -5,7 +5,6 @@ import type { Task } from '@/types'
 import { Modal } from '@/components/Modal'
 import * as taskService from '@/services/taskService'
 import { useAuthStore } from '@/store/authStore'
-import { useTaskStore } from '@/store/taskStore'
 
 export function QuickReportModal({
   open,
@@ -18,29 +17,28 @@ export function QuickReportModal({
 }) {
   const user = useAuthStore((s) => s.user)
   const qc = useQueryClient()
-  const fetchTasks = useTaskStore((s) => s.fetchTasks)
   const [note, setNote] = useState('')
   const [fileName, setFileName] = useState('')
 
   const mut = useMutation({
     mutationFn: async () => {
-      if (!task || !user) throw new Error('NO')
-      return taskService.submitTaskReport(task.id, user.id, note)
+      if (!task || !user) throw new Error('NO_USER')
+      return taskService.submitTaskReport(task.id, note)
     },
     onSuccess: async () => {
       toast.success(
         'Đã gửi báo cáo — người giao việc sẽ thấy trong hộp duyệt',
       )
       await qc.invalidateQueries({ queryKey: ['tasks'] })
-      await fetchTasks()
       setNote('')
       setFileName('')
       onClose()
     },
-    onError: (e: Error) => {
-      if (e.message === 'FORBIDDEN_NOT_ASSIGNEE') {
+    onError: (e: Error & { code?: string }) => {
+      const code = e.code || e.message
+      if (code === 'FORBIDDEN_NOT_ASSIGNEE') {
         toast.error('Chỉ người được giao mới gửi báo cáo')
-      } else if (e.message === 'INVALID_FOR_REPORT') {
+      } else if (code === 'INVALID_FOR_REPORT') {
         toast.error('Chỉ gửi báo cáo khi việc ở trạng thái Mới / Đang làm')
       } else toast.error(e.message || 'Không gửi được báo cáo')
     },

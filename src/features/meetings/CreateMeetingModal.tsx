@@ -78,12 +78,13 @@ export function CreateMeetingModal({
       onClose()
       navigate(`/meetings/${m.id}`)
     },
-    onError: (e: Error) => {
-      if (e.message === 'FORBIDDEN_SCHEDULE') {
+    onError: (e: Error & { code?: string }) => {
+      const code = e.code || e.message
+      if (code === 'FORBIDDEN_SCHEDULE') {
         toast.error('Chỉ Giám đốc / Phó Giám đốc được tạo lịch')
-      } else if (e.message === 'NO_SECRETARY') {
+      } else if (code === 'NO_SECRETARY') {
         toast.error('Chọn thư ký phiên họp')
-      } else toast.error('Không tạo được lịch')
+      } else toast.error(e.message || 'Không tạo được lịch')
     },
   })
 

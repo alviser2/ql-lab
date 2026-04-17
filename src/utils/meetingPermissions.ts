@@ -2,10 +2,13 @@ import type { Meeting, User } from '@/types'
 
 /** Chỉ Giám đốc & Phó Giám đốc được tạo lịch giao ban */
 export function canScheduleMeeting(user: User): boolean {
-  return user.role === 'director' || user.role === 'vice_director'
+  return user.role === 'r-director' || user.role === 'r-vice-director'
 }
 
-/** Thư ký được sửa toàn bộ biên bản khi chưa duyệt */
+/**
+ * Thư ký được sửa toàn bộ biên bản khi chưa duyệt.
+ * Backend gửi `attendeeIds` là array sau khi normalize.
+ */
 export function canEditMeetingDraft(user: User, meeting: Meeting): boolean {
   if (meeting.status !== 'draft') return false
   return user.id === meeting.secretaryId
@@ -13,32 +16,45 @@ export function canEditMeetingDraft(user: User, meeting: Meeting): boolean {
 
 /** Chỉ Giám đốc duyệt chốt biên bản */
 export function canApproveMeeting(user: User, meeting: Meeting): boolean {
-  return user.role === 'director' && meeting.status === 'draft'
+  return user.role === 'r-director' && meeting.status === 'draft'
 }
 
+/**
+ * Ai được xem cuộc họp.
+ * - GĐ: xem tất cả
+ * - PGĐ: xem họp toàn viện, hoặc khoa mình giám sát, hoặc có trong ds tham dự
+ * - TK: xem khoa mình, hoặc có trong ds tham dự
+ * - NV: chỉ xem nếu là thư ký / chủ trì / có trong ds tham dự
+ */
 export function meetingVisibleToUser(user: User, m: Meeting): boolean {
-  if (user.role === 'director') return true
-  if (user.role === 'vice_director') {
+  if (user.role === 'r-director') return true
+
+  const attendeeIds = Array.isArray(m.attendeeIds) ? m.attendeeIds : []
+
+  if (user.role === 'r-vice-director') {
+    // Toàn viện
     if (m.departmentId == null) return true
+    // Trong khoa PGĐ giám sát
     if (user.managedDepartmentIds?.includes(m.departmentId)) return true
-    return (
-      m.createdById === user.id ||
-      m.secretaryId === user.id ||
-      m.chairId === user.id ||
-      (m.attendeeIds?.includes(user.id) ?? false)
-    )
+    // Người tham gia
+    if (m.createdById === user.id) return true
+    if (m.secretaryId === user.id) return true
+    if (m.chairId === user.id) return true
+    if (attendeeIds.includes(user.id)) return true
+    return false
   }
-  if (user.role === 'department_head') {
+
+  if (user.role === 'r-dept-head') {
     if (m.departmentId === user.departmentId) return true
-    return (
-      m.chairId === user.id ||
-      m.secretaryId === user.id ||
-      (m.attendeeIds?.includes(user.id) ?? false)
-    )
+    if (m.chairId === user.id) return true
+    if (m.secretaryId === user.id) return true
+    if (attendeeIds.includes(user.id)) return true
+    return false
   }
-  return (
-    (m.attendeeIds?.includes(user.id) ?? false) ||
-    m.secretaryId === user.id ||
-    m.chairId === user.id
-  )
+
+  // staff
+  if (m.secretaryId === user.id) return true
+  if (m.chairId === user.id) return true
+  if (attendeeIds.includes(user.id)) return true
+  return false
 }
