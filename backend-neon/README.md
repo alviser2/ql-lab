@@ -32,14 +32,11 @@ Health check:
 
 - `GET http://localhost:3001/api/health`
 
-Demo account (seed sẵn):
+Lưu ý bảo mật seed data:
 
-- `director / 123456`
-- `admin / Admin@123456` (**admin hệ thống để quản trị user/role**)
-- `vicedir / 123456`
-- `tk_noi / 123456`
-- `tk_nct / 123456`
-- `nv_trang / 123456`
+- Schema có seed tài khoản mẫu để bootstrap nhanh.
+- Sau khi deploy production, cần đổi mật khẩu toàn bộ tài khoản seed hoặc disable/xóa các tài khoản không dùng.
+- Không công khai thông tin đăng nhập thật trên frontend/docs.
 
 ## 3) Deploy Vercel
 

@@ -2,15 +2,11 @@
 
 Tài liệu nhanh để quản trị user/role theo phân cấp.
 
-## 0) Tài khoản admin mặc định
+## 0) Bootstrap tài khoản quản trị
 
-Sau khi chạy `db/schema.sql`, hệ thống có sẵn:
-
-- username: `admin`
-- password: `Admin@123456`
-- role: `r-director`
-
-> Khuyến nghị: đăng nhập lần đầu rồi đổi mật khẩu ngay qua API `PATCH /api/admin/users/:id/password`.
+- Dùng tài khoản bootstrap từ seed để đăng nhập lần đầu.
+- Bắt buộc đổi mật khẩu ngay sau lần đăng nhập đầu tiên qua API `PATCH /api/admin/users/:id/password`.
+- Không dùng lại mật khẩu mẫu/yếu trên production.
 
 ## 1) Khuyến nghị dùng API admin (an toàn hơn)
 
@@ -26,7 +22,7 @@ Base URL: `https://<backend-domain>/api/admin`
 {
   "username": "nv_moi",
   "full_name": "NV Mới",
-  "password": "123456",
+  "password": "<StrongPassword!2026>",
   "role_id": "r-staff",
   "dept_id": "dept-noi",
   "is_active": true
@@ -39,7 +35,7 @@ Nếu là phó giám đốc:
 {
   "username": "pgd_a",
   "full_name": "BS. A",
-  "password": "123456",
+  "password": "<StrongPassword!2026>",
   "role_id": "r-vice-director",
   "managed_department_ids": ["dept-noi", "dept-ngoai"]
 }
@@ -51,7 +47,7 @@ Nếu là phó giám đốc:
 
 ```json
 {
-  "password": "MatKhauMoi123"
+  "password": "MatKhauMoi123!"
 }
 ```
 
@@ -103,7 +99,7 @@ values (
   'u_custom_01',
   'nv_custom',
   'Nhân viên Custom',
-  '$2b$10$hphZd9gb3mmhtY6UMh3BDORPHlaszgaMnQOSeMJ5mxtXUYpZQZ.by', -- ví dụ hash 123456
+  '<bcrypt_hash>', -- hash đã tạo từ mật khẩu mạnh
   'r-staff',
   'dept-noi',
   true

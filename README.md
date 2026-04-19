@@ -1,92 +1,24 @@
-# Giao Ban Frontend + API (Vite + Express + SQLite)
+# Giao Ban Web (Split Deploy)
 
-Dự án gồm:
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: Express + SQLite (better-sqlite3)
+Repo hiện được tối giản cho mô hình deploy tách FE/BE:
 
-## 1) Yêu cầu môi trường
-- Node.js 20+
-- npm 10+
+- `frontend/` → React + Vite (deploy FE)
+- `backend-neon/` → Express + PostgreSQL/Neon (deploy BE)
 
-## 2) Cấu hình env
-Sao chép file mẫu:
+> Các phần legacy trùng lặp (`src/`, `server/`, `backend/`, root app) đã được dọn khỏi repo để tránh nhầm luồng deploy.
 
-```bash
-cp .env.example .env
-```
+## Deploy nhanh
 
-> Trên Windows PowerShell có thể dùng:
->
-> ```powershell
-> Copy-Item .env.example .env
-> ```
+### Frontend
+Xem: `frontend/README.md`
 
-Các biến quan trọng:
-- `VITE_API_BASE_URL` (FE): mặc định `/api`
-- `JWT_SECRET` (BE): **bắt buộc ở production**
-- `CORS_ORIGINS` (BE): danh sách origin, ngăn cách dấu phẩy
-- `DB_PATH` (BE): đường dẫn file SQLite
-- `SEED_ON_START` (BE): chỉ nên dùng `true` ở development
+### Backend (Neon)
+Xem: `backend-neon/README.md`
 
-## 3) Chạy local
-```bash
-npm install
-npm run dev:full
-```
+## Checklist bảo mật production
 
-Script:
-- `npm run dev`: chạy Vite frontend
-- `npm run server`: chạy Express API
-- `npm run dev:full`: chạy đồng thời frontend + backend
-- `npm run build`: build frontend
-- `npm run start`: chạy backend kiểu production
-
-## 4) Triển khai production (khuyến nghị)
-
-### 4.1 Build frontend
-```bash
-npm run build
-```
-
-### 4.2 Chạy backend
-```bash
-NODE_ENV=production npm run start
-```
-
-### 4.3 Reverse proxy (Nginx)
-- Serve thư mục `dist/`
-- Proxy `/api` về backend Node
-- SPA fallback: mọi route FE trả về `index.html` (trừ `/api`)
-
-Ví dụ Nginx:
-
-```nginx
-server {
-  listen 80;
-  server_name your-domain.com;
-
-  root /var/www/giao-ban/dist;
-  index index.html;
-
-  # API
-  location /api/ {
-    proxy_pass http://127.0.0.1:3001/api/;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-
-  # Static + SPA fallback
-  location / {
-    try_files $uri $uri/ /index.html;
-  }
-}
-```
-
-## 5) Lưu ý bảo mật & ổn định
-- Không dùng `JWT_SECRET` mặc định khi production
-- Không seed dữ liệu demo trong production (`SEED_ON_START=false`)
-- Không commit file DB runtime (`server/*.db`, `*.db-wal`, `*.db-shm` đã được ignore)
-- Nên mount `DB_PATH` ra volume riêng để backup/restore dễ hơn
+- Chỉ set secret trên platform env (Vercel/host), không commit `.env`
+- `JWT_SECRET` phải là secret mạnh, không dùng mặc định
+- `DATABASE_URL` dùng user runtime tối thiểu quyền (không dùng owner)
+- `CORS_ORIGINS` chỉ whitelist domain FE thật
+- Đổi/xóa tài khoản demo sau khi chạy production ổn định

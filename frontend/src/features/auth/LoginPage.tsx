@@ -101,16 +101,6 @@ export function LoginPage() {
           </p>
         </form>
 
-        <div className="mt-6 rounded-xl bg-slate-50 p-4 text-xs text-slate-600">
-          <p className="mb-2 font-semibold text-slate-700">Tài khoản demo (password: 123456)</p>
-          <ul className="space-y-1">
-            <li><span className="font-mono text-medical-700">director</span> — Giám đốc</li>
-            <li><span className="font-mono text-medical-700">vicedir</span> — Phó Giám đốc</li>
-            <li><span className="font-mono text-medical-700">tk_noi</span> — Trưởng khoa Nội</li>
-            <li><span className="font-mono text-medical-700">tk_nct</span> — Trưởng khoa Ngoại</li>
-            <li><span className="font-mono text-medical-700">nv_trang</span> — Nhân viên</li>
-          </ul>
-        </div>
       </div>
     </div>
   )

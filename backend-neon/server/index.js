@@ -13,6 +13,7 @@ import departmentsRouter from './routes/departments.js'
 import adminRouter from './routes/admin.js'
 
 const app = express()
+app.disable('x-powered-by')
 
 const PORT = process.env.PORT || 3001
 const NODE_ENV = process.env.NODE_ENV || 'development'
@@ -34,6 +35,11 @@ const parsedOrigins = (process.env.CORS_ORIGINS || defaultCorsOrigins)
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean)
+
+if (IS_PRODUCTION && parsedOrigins.length === 0) {
+  console.error('[startup] CORS_ORIGINS is required in production.')
+  process.exit(1)
+}
 
 const allowedOrigins = new Set(parsedOrigins)
 
@@ -79,7 +85,7 @@ app.use((err, req, res, next) => {
 
   return res.status(500).json({
     code: 'INTERNAL_SERVER_ERROR',
-    message: err?.message || 'Lỗi server',
+    message: IS_PRODUCTION ? 'Lỗi server' : err?.message || 'Lỗi server',
   })
 })
 
@@ -93,7 +99,6 @@ console.log('[startup] env:', {
 if (!IS_VERCEL) {
   app.listen(PORT, () => {
     console.log(`[server-neon] running on http://localhost:${PORT}`)
-    console.log('[server-neon] demo login: director / 123456')
   })
 }
 
