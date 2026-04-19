@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
   ClipboardList,
@@ -9,6 +9,7 @@ import {
   PieChart,
   Users,
   Shield,
+  X,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUiStore } from '@/store/uiStore'
@@ -31,8 +32,10 @@ export function MainLayout() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+  const location = useLocation()
   const sidebarOpen = useUiStore((s) => s.sidebarOpen)
   const toggleSidebar = useUiStore((s) => s.toggleSidebar)
+  const setSidebarOpen = useUiStore((s) => s.setSidebarOpen)
   const createOpen = useUiStore((s) => s.createTaskOpen)
   const createTaskParentId = useUiStore((s) => s.createTaskParentId)
   const setCreateOpen = useUiStore((s) => s.setCreateTaskOpen)
@@ -60,6 +63,36 @@ export function MainLayout() {
     ).length
   }, [tasks, user])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const media = window.matchMedia('(min-width: 1024px)')
+    const syncSidebarByViewport = () => setSidebarOpen(media.matches)
+
+    syncSidebarByViewport()
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', syncSidebarByViewport)
+      return () => media.removeEventListener('change', syncSidebarByViewport)
+    }
+
+    media.addListener(syncSidebarByViewport)
+    return () => media.removeListener(syncSidebarByViewport)
+  }, [setSidebarOpen])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false)
+    }
+  }, [location.pathname, setSidebarOpen])
+
+  const closeSidebarOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen text-slate-900">
       <aside
@@ -73,11 +106,19 @@ export function MainLayout() {
             GB
           </span>
           {sidebarOpen && (
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Giao ban BV</p>
               <p className="truncate text-xs text-slate-500">Task & KPI</p>
             </div>
           )}
+          <button
+            type="button"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Đóng menu"
+          >
+            <X className="size-5" />
+          </button>
         </div>
         <nav className="space-y-1 p-3">
           {nav.map((item) => (
@@ -93,6 +134,7 @@ export function MainLayout() {
                     : 'text-slate-600 hover:bg-slate-100',
                 )
               }
+              onClick={closeSidebarOnMobile}
             >
               <item.icon className="size-5 shrink-0" />
               {sidebarOpen && item.label}
@@ -120,7 +162,17 @@ export function MainLayout() {
         )}
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col lg:pl-0">
+      <button
+        type="button"
+        aria-label="Đóng menu"
+        onClick={() => setSidebarOpen(false)}
+        className={cn(
+          'fixed inset-0 z-30 bg-slate-900/30 transition-opacity lg:hidden',
+          sidebarOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+        )}
+      />
+
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-0">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/50 bg-white/80 px-4 backdrop-blur">
           <button
             type="button"
@@ -130,7 +182,7 @@ export function MainLayout() {
           >
             <Menu className="size-5" />
           </button>
-          <div className="flex flex-1 items-center justify-end gap-2">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
             <span className="relative inline-flex rounded-xl bg-slate-100 p-2 text-slate-600">
               <Bell className="size-5" />
               {badge > 0 && (
@@ -145,12 +197,13 @@ export function MainLayout() {
                 onClick={() => setCreateOpen(true)}
                 className="rounded-xl bg-medical-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-medical-700"
               >
-                + Tạo việc
+                <span className="hidden sm:inline">+ Tạo việc</span>
+                <span className="sm:hidden">+ Việc</span>
               </button>
             )}
           </div>
         </header>
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="min-w-0 flex-1 p-3 sm:p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

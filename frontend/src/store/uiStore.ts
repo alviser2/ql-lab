@@ -15,7 +15,8 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set) => ({
-  sidebarOpen: true,
+  sidebarOpen:
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
   selectedView: 'dashboard',
   createTaskOpen: false,
   createTaskParentId: null,
