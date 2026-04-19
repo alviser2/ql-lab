@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronRight, Eye, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, Plus, Trash2 } from 'lucide-react'
 import type { Task } from '@/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import { cn } from '@/utils/cn'
+
+type TaskAction = 'view' | 'add' | 'delete'
 
 const statusBorder: Record<Task['status'], string> = {
   NEW: 'border-l-slate-400',
@@ -22,6 +23,7 @@ export function TaskNode({
   onToggle,
   onSelect,
   onHoverAction,
+  availableActions,
 }: {
   task: Task
   depth: number
@@ -33,21 +35,23 @@ export function TaskNode({
   loadedChildCount: number | null
   onToggle: () => void
   onSelect: (t: Task) => void
-  onHoverAction?: (action: 'view' | 'add', t: Task) => void
+  onHoverAction?: (action: TaskAction, t: Task) => void
+  availableActions?: TaskAction[]
 }) {
-  const [hover, setHover] = useState(false)
   const showChevron = showToggle || loading
+  const actions =
+    availableActions ?? (task.archived ? ['view', 'add', 'delete'] : ['view', 'add'])
+  const canShowActions = !!onHoverAction && actions.length > 0
 
   return (
     <div
       className={cn(
-        'group relative flex items-start gap-2 rounded-xl border border-slate-200/80 bg-white/95 py-2 pl-2 pr-3 shadow-sm transition',
+        'group relative flex items-start gap-2 rounded-xl border border-slate-200/80 bg-white/95 py-2 pl-2 shadow-sm transition',
+        canShowActions ? 'pr-32 md:pr-3' : 'pr-3',
         'border-l-4',
         statusBorder[task.status],
       )}
       style={{ marginLeft: depth * 16 }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
     >
       <button
         type="button"
@@ -85,30 +89,50 @@ export function TaskNode({
           )}
         </div>
       </button>
-      {hover && onHoverAction && (
-        <div className="absolute right-2 top-2 flex gap-1">
-          <button
-            type="button"
-            title="Xem nhanh"
-            className="rounded-lg bg-slate-900/80 p-1.5 text-white shadow"
-            onClick={(e) => {
-              e.stopPropagation()
-              onHoverAction('view', task)
-            }}
-          >
-            <Eye className="size-4" />
-          </button>
-          <button
-            type="button"
-            title="Tạo việc con"
-            className="rounded-lg bg-medical-600 p-1.5 text-white shadow"
-            onClick={(e) => {
-              e.stopPropagation()
-              onHoverAction('add', task)
-            }}
-          >
-            <Plus className="size-4" />
-          </button>
+
+      {canShowActions && (
+        <div className="absolute right-2 top-2 flex gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+          {actions.includes('view') && (
+            <button
+              type="button"
+              title="Xem nhanh"
+              className="rounded-lg bg-slate-900/80 p-1.5 text-white shadow"
+              onClick={(e) => {
+                e.stopPropagation()
+                onHoverAction('view', task)
+              }}
+            >
+              <Eye className="size-4" />
+            </button>
+          )}
+
+          {actions.includes('add') && (
+            <button
+              type="button"
+              title="Tạo việc con"
+              className="rounded-lg bg-medical-600 p-1.5 text-white shadow"
+              onClick={(e) => {
+                e.stopPropagation()
+                onHoverAction('add', task)
+              }}
+            >
+              <Plus className="size-4" />
+            </button>
+          )}
+
+          {actions.includes('delete') && (
+            <button
+              type="button"
+              title="Xóa cây lịch sử này"
+              className="rounded-lg bg-red-600 p-1.5 text-white shadow hover:bg-red-700"
+              onClick={(e) => {
+                e.stopPropagation()
+                onHoverAction('delete', task)
+              }}
+            >
+              <Trash2 className="size-4" />
+            </button>
+          )}
         </div>
       )}
     </div>

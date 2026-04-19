@@ -63,7 +63,7 @@ export function TaskTree({
   )
 
   const onHoverAction = useCallback(
-    (action: 'view' | 'add', t: Task) => {
+    (action: 'view' | 'add' | 'delete', t: Task) => {
       if (action === 'view') {
         onSelectTask(t)
         return
@@ -74,6 +74,11 @@ export function TaskTree({
           return
         }
         setCreateOpen(true, t.id)
+        return
+      }
+      if (action === 'delete') {
+        // Chỉ dùng cho cây lịch sử (handled ở màn lịch sử)
+        return
       }
     },
     [onSelectTask, setCreateOpen, user],
@@ -103,6 +108,7 @@ export function TaskTree({
                   onToggle={() => void toggle(task.id)}
                   onSelect={onSelectTask}
                   onHoverAction={onHoverAction}
+                  availableActions={['view', 'add']}
                 />
                 {isExpanded && loaded && loaded.length > 0 && (
                   <RowTreeInner list={loaded} depth={depth + 1} />
