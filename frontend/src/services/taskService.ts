@@ -1,6 +1,15 @@
 import api from '@/lib/api'
 import type { Task, TaskPriority, TaskTreeNode } from '@/types'
 
+export type TaskHistoryPurgeResult = {
+  ok: boolean
+  mode: 'single' | 'month' | 'all'
+  deletedCount: number
+  rootTaskId?: string
+  year?: number
+  month?: number
+}
+
 // ── Normalizers ─────────────────────────────────────────────
 
 function normalizeTask(t: any): Task {
@@ -38,11 +47,11 @@ function normalizeTask(t: any): Task {
     // Enriched names
     creatorName: t.creatorName ?? t.creator_name ?? null,
     assigneeName: t.assigneeName ?? t.assignee_name ?? null,
-    monitorName: t.monitorName ?? null,
-    overseerName: t.overseerName ?? null,
-    reviewerName: t.reviewerName ?? null,
-    departmentName: t.departmentName ?? null,
-    meetingTitle: t.meetingTitle ?? null,
+    monitorName: t.monitorName ?? t.monitor_name ?? null,
+    overseerName: t.overseerName ?? t.overseer_name ?? null,
+    reviewerName: t.reviewerName ?? t.reviewer_name ?? null,
+    departmentName: t.departmentName ?? t.department_name ?? null,
+    meetingTitle: t.meetingTitle ?? t.meeting_title ?? null,
     // Legacy extended fields (parsed from extended_note if present as single string)
     thuongTrucId: t.thuongTrucId ?? null,
     boPhanPhoiHopIds: t.boPhanPhoiHopIds ?? [],
@@ -175,4 +184,32 @@ export async function assignTask(
     assignee_id: assigneeId,
   })
   return normalizeTask(res.data)
+}
+
+export async function deleteHistoryTask(taskId: string): Promise<TaskHistoryPurgeResult> {
+  const res = await api.delete(`/tasks/history/${taskId}`)
+  return res.data as TaskHistoryPurgeResult
+}
+
+export async function purgeHistoryByMonth(
+  year: number,
+  month: number,
+): Promise<TaskHistoryPurgeResult> {
+  const res = await api.delete('/tasks/history', {
+    params: {
+      mode: 'month',
+      year,
+      month,
+    },
+  })
+  return res.data as TaskHistoryPurgeResult
+}
+
+export async function purgeAllHistory(): Promise<TaskHistoryPurgeResult> {
+  const res = await api.delete('/tasks/history', {
+    params: {
+      mode: 'all',
+    },
+  })
+  return res.data as TaskHistoryPurgeResult
 }

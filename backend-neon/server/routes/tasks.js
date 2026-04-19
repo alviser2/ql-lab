@@ -143,6 +143,33 @@ async function archiveSubtree(rootId, actorId) {
   }
 }
 
+async function purgeArchivedSubtree(rootId) {
+  const ids = await collectSubtreeTaskIds(rootId)
+  if (ids.length === 0) return 0
+
+  const rs = await query('delete from tasks where id = any($1::text[]) and archived = true', [ids])
+  return rs.rowCount || 0
+}
+
+async function purgeArchivedByMonth(year, month) {
+  const rs = await query(
+    `
+      delete from tasks
+      where archived = true
+        and archived_at is not null
+        and extract(year from archived_at) = $1
+        and extract(month from archived_at) = $2
+    `,
+    [year, month],
+  )
+  return rs.rowCount || 0
+}
+
+async function purgeAllArchived() {
+  const rs = await query('delete from tasks where archived = true')
+  return rs.rowCount || 0
+}
+
 function taskVisibleToUser(task, userId, userRole, managedDepts, myDeptId) {
   if (userRole === 'r-director') return true
 
@@ -888,6 +915,83 @@ router.post(
 
     const updated = await getTaskById(req.params.id)
     res.json(updated)
+  }),
+)
+
+router.delete(
+  '/history/:id',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { userRole } = req
+    if (userRole !== 'r-director') {
+      return forbidden(res, 'FORBIDDEN_PURGE', 'Chỉ Giám đốc mới được dọn lịch sử công việc')
+    }
+
+    const task = await getTaskById(req.params.id)
+    if (!task) return notFound(res, 'TASK_NOT_FOUND', 'Không tìm thấy công việc')
+    if (!isArchivedTask(task)) {
+      return badRequest(res, 'TASK_NOT_ARCHIVED', 'Chỉ được xóa công việc đã chuyển lịch sử')
+    }
+
+    const rootId = await getRootTaskId(req.params.id)
+    const deletedCount = await purgeArchivedSubtree(rootId)
+
+    return res.json({
+      ok: true,
+      mode: 'single',
+      rootTaskId: rootId,
+      deletedCount,
+    })
+  }),
+)
+
+router.delete(
+  '/history',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { userRole } = req
+    if (userRole !== 'r-director') {
+      return forbidden(res, 'FORBIDDEN_PURGE', 'Chỉ Giám đốc mới được dọn lịch sử công việc')
+    }
+
+    const modeRaw = String(req.query.mode || '').trim().toLowerCase()
+
+    if (modeRaw === 'month') {
+      const year = Number(req.query.year)
+      const month = Number(req.query.month)
+
+      if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+        return badRequest(
+          res,
+          'INVALID_MONTH_FILTER',
+          'Tham số month/year không hợp lệ (month: 1-12)',
+        )
+      }
+
+      const deletedCount = await purgeArchivedByMonth(year, month)
+      return res.json({
+        ok: true,
+        mode: 'month',
+        year,
+        month,
+        deletedCount,
+      })
+    }
+
+    if (modeRaw === 'all') {
+      const deletedCount = await purgeAllArchived()
+      return res.json({
+        ok: true,
+        mode: 'all',
+        deletedCount,
+      })
+    }
+
+    return badRequest(
+      res,
+      'PURGE_MODE_REQUIRED',
+      'Thiếu mode dọn lịch sử (mode=month hoặc mode=all)',
+    )
   }),
 )
 
