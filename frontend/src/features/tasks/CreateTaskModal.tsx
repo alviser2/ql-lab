@@ -11,6 +11,7 @@ import { canAssignTo, deadlineAfterParent } from '@/utils/taskRules'
 import { canCreateTask } from '@/utils/taskHierarchy'
 import { cn } from '@/utils/cn'
 import * as taskService from '@/services/taskService'
+import { sortUsersByRoleThenName } from '@/utils/userSort'
 
 // ──────────────────────────────────────────────────────────
 // Helpers
@@ -146,7 +147,9 @@ export function CreateTaskModal({
   /** Candidates user có thể giao việc (1 cấp dưới) */
   const assignCandidates = useMemo<User[]>(() => {
     if (!user) return []
-    return users.filter((u) => u.id !== user.id && canAssignTo(user, u))
+    return sortUsersByRoleThenName(
+      users.filter((u) => u.id !== user.id && canAssignTo(user, u)),
+    )
   }, [users, user])
 
 

@@ -13,6 +13,7 @@ import {
 import { MINUTE_FIELD_GROUPS } from '@/features/meetings/minuteFieldConfig'
 import type { Meeting, MeetingMinutes, User } from '@/types'
 import { useUsersQuery } from '@/hooks/useUsersQuery'
+import { sortUsersByRoleThenName } from '@/utils/userSort'
 
 function toLocalInput(iso: string) {
   const d = new Date(iso)
@@ -190,7 +191,10 @@ export function MeetingDetailPage() {
   const user = useAuthStore((s) => s.user)
   const qc = useQueryClient()
   const usersQuery = useUsersQuery()
-  const users = usersQuery.data ?? []
+  const users = useMemo(
+    () => sortUsersByRoleThenName(usersQuery.data ?? []),
+    [usersQuery.data],
+  )
 
   const q = useQuery({
     queryKey: ['meeting', meetingId],

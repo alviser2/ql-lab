@@ -8,6 +8,7 @@ import type { User } from '@/types'
 import { useAuthStore } from '@/store/authStore'
 import { useUsersQuery } from '@/hooks/useUsersQuery'
 import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
+import { sortUsersByRoleThenName } from '@/utils/userSort'
 
 export function CreateMeetingModal({
   open,
@@ -21,7 +22,10 @@ export function CreateMeetingModal({
   const navigate = useNavigate()
   const usersQuery = useUsersQuery()
   const departmentsQuery = useDepartmentsQuery()
-  const users = usersQuery.data ?? []
+  const users = useMemo(
+    () => sortUsersByRoleThenName(usersQuery.data ?? []),
+    [usersQuery.data],
+  )
   const departments = departmentsQuery.data ?? []
 
   const [title, setTitle] = useState(

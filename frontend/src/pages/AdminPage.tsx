@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/authStore'
 import type { Role } from '@/types'
 import { Modal } from '@/components/Modal'
 import type { AdminUser } from '@/types/admin'
+import { sortAdminUsersByRoleThenName } from '@/utils/userSort'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'r-director', label: 'Giám đốc' },
@@ -152,7 +153,10 @@ export function AdminPage() {
     onError: (e) => toast.error(parseErrorMessage(e)),
   })
 
-  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data])
+  const users = useMemo(
+    () => sortAdminUsersByRoleThenName(usersQuery.data ?? []),
+    [usersQuery.data],
+  )
 
   if (!isDirector) {
     return (

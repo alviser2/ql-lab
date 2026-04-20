@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { QuickReportModal } from '@/features/tasks/staff/QuickReportModal'
 import { cn } from '@/utils/cn'
 import { useUsersQuery } from '@/hooks/useUsersQuery'
+import { sortUsersByRoleThenName } from '@/utils/userSort'
 
 const nextActions: { label: string; to: TaskStatus; from: TaskStatus[] }[] = [
   { label: 'Bắt đầu làm', to: 'IN_PROGRESS', from: ['NEW'] },
@@ -69,7 +70,8 @@ export function TaskDetailDrawer({
     ) {
       return []
     }
-    return users.filter((u) => {
+
+    const scopedUsers = users.filter((u) => {
       if (!canAssignTo(me, u)) return false
       if (me.role === 'r-director') return true
       if (me.role === 'r-dept-head') {
@@ -80,6 +82,8 @@ export function TaskDetailDrawer({
         (me.managedDepartmentIds?.includes(task.departmentId) ?? false)
       )
     })
+
+    return sortUsersByRoleThenName(scopedUsers)
   }, [me, task, users])
 
   const prog = useMemo(() => {
