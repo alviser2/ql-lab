@@ -154,7 +154,12 @@ export function AdminPage() {
   })
 
   const users = useMemo(
-    () => sortAdminUsersByRoleThenName(usersQuery.data ?? []),
+    () =>
+      sortAdminUsersByRoleThenName(
+        (usersQuery.data ?? []).filter(
+          (u) => u.username.trim().toLowerCase() !== 'admin',
+        ),
+      ),
     [usersQuery.data],
   )
 
