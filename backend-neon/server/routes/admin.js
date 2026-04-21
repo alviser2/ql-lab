@@ -7,6 +7,12 @@ import { asyncHandler } from '../lib/async.js'
 
 const router = Router()
 
+const PROTECTED_BACKUP_USERNAME = 'admin'
+
+function isProtectedBackupAccount(username) {
+  return String(username || '').trim().toLowerCase() === PROTECTED_BACKUP_USERNAME
+}
+
 router.use(authenticate, requireRole('r-director'))
 
 router.get(
@@ -36,8 +42,10 @@ router.get(
       from users u
       join roles r on u.role_id = r.id
       left join departments d on d.id = u.dept_id
+      where lower(trim(u.username)) <> $1
       order by u.created_at desc
     `,
+      [PROTECTED_BACKUP_USERNAME],
     )
 
     res.json(rows)
@@ -137,8 +145,16 @@ router.patch(
       return badRequest(res, 'PASSWORD_TOO_SHORT', 'Mật khẩu phải có ít nhất 6 ký tự')
     }
 
-    const userRs = await query('select id from users where id = $1 limit 1', [req.params.id])
+    const userRs = await query('select id, username from users where id = $1 limit 1', [req.params.id])
     if (userRs.rowCount === 0) return notFound(res, 'USER_NOT_FOUND', 'User không tồn tại')
+
+    if (isProtectedBackupAccount(userRs.rows[0]?.username)) {
+      return badRequest(
+        res,
+        'PROTECTED_ACCOUNT_FORBIDDEN',
+        'Tài khoản admin backup được bảo vệ, không thể đổi mật khẩu tại đây',
+      )
+    }
 
     const hash = await bcrypt.hash(String(password), 10)
     await query('update users set password_hash = $1, updated_at = now() where id = $2', [
@@ -159,8 +175,16 @@ router.patch(
       return badRequest(res, 'ROLE_REQUIRED', 'Thiếu role_id')
     }
 
-    const userRs = await query('select id from users where id = $1 limit 1', [req.params.id])
+    const userRs = await query('select id, username from users where id = $1 limit 1', [req.params.id])
     if (userRs.rowCount === 0) return notFound(res, 'USER_NOT_FOUND', 'User không tồn tại')
+
+    if (isProtectedBackupAccount(userRs.rows[0]?.username)) {
+      return badRequest(
+        res,
+        'PROTECTED_ACCOUNT_FORBIDDEN',
+        'Tài khoản admin backup được bảo vệ, không thể đổi phân quyền',
+      )
+    }
 
     const roleRs = await query('select id from roles where id = $1 limit 1', [role_id])
     if (roleRs.rowCount === 0) {
@@ -212,8 +236,16 @@ router.patch(
       return badRequest(res, 'ACTIVE_REQUIRED', 'is_active phải là boolean')
     }
 
-    const userRs = await query('select id from users where id = $1 limit 1', [req.params.id])
+    const userRs = await query('select id, username from users where id = $1 limit 1', [req.params.id])
     if (userRs.rowCount === 0) return notFound(res, 'USER_NOT_FOUND', 'User không tồn tại')
+
+    if (isProtectedBackupAccount(userRs.rows[0]?.username)) {
+      return badRequest(
+        res,
+        'PROTECTED_ACCOUNT_FORBIDDEN',
+        'Tài khoản admin backup được bảo vệ, không thể khóa/mở tại đây',
+      )
+    }
 
     await query('update users set is_active = $1, updated_at = now() where id = $2', [
       is_active,
@@ -240,6 +272,14 @@ router.delete(
     const target = targetRs.rows[0]
 
     if (!target) return notFound(res, 'USER_NOT_FOUND', 'User không tồn tại')
+
+    if (isProtectedBackupAccount(target.username)) {
+      return badRequest(
+        res,
+        'PROTECTED_ACCOUNT_FORBIDDEN',
+        'Tài khoản admin backup được bảo vệ, không thể xóa',
+      )
+    }
 
     if (target.role_id === 'r-director' && target.is_active) {
       const directorCountRs = await query(
