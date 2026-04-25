@@ -25,3 +25,11 @@ export async function createDepartment(input: CreateDepartmentInput): Promise<De
   const res = await api.post('/departments', input)
   return normalizeDepartment(res.data)
 }
+
+export async function deleteDepartment(departmentId: string) {
+  const res = await api.delete(`/departments/${departmentId}`)
+  return res.data as {
+    deleted: boolean
+    department?: Department
+  }
+}

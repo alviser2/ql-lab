@@ -10,7 +10,7 @@ import {
   updateAdminUserRole,
 } from '@/services/adminService'
 import { useDepartmentsQuery } from '@/hooks/useDepartmentsQuery'
-import { createDepartment } from '@/services/departmentService'
+import { createDepartment, deleteDepartment } from '@/services/departmentService'
 import { useAuthStore } from '@/store/authStore'
 import type { Role } from '@/types'
 import { Modal } from '@/components/Modal'
@@ -153,6 +153,15 @@ export function AdminPage() {
     onError: (e) => toast.error(parseErrorMessage(e)),
   })
 
+  const deleteDepartmentMut = useMutation({
+    mutationFn: ({ departmentId }: { departmentId: string }) => deleteDepartment(departmentId),
+    onSuccess: async () => {
+      toast.success('Đã xóa khoa')
+      await refreshAll()
+    },
+    onError: (e) => toast.error(parseErrorMessage(e)),
+  })
+
   const users = useMemo(
     () =>
       sortAdminUsersByRoleThenName(
@@ -194,8 +203,61 @@ export function AdminPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Trang này cho phép tạo khoa mới, tạo user, đổi mật khẩu, đổi role/phân cấp, khóa/mở và xóa tài khoản.
+        Trang này cho phép tạo/xóa khoa, tạo user, đổi mật khẩu, đổi role/phân cấp, khóa/mở và xóa tài khoản.
       </p>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-slate-900">Quản lý khoa</h2>
+          <span className="text-xs text-slate-500">Tổng: {departments.length} khoa</span>
+        </div>
+
+        {departmentsQuery.isLoading ? (
+          <p className="text-sm text-slate-500">Đang tải danh sách khoa…</p>
+        ) : departmentsQuery.isError ? (
+          <p className="text-sm text-red-600">Không tải được danh sách khoa.</p>
+        ) : departments.length === 0 ? (
+          <p className="text-sm text-slate-500">Chưa có khoa nào.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-[720px] w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Tên khoa</th>
+                  <th className="px-3 py-2 text-left font-semibold">Mã khoa</th>
+                  <th className="px-3 py-2 text-left font-semibold">Loại</th>
+                  <th className="px-3 py-2 text-right font-semibold">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {departments.map((d) => (
+                  <tr key={d.id} className="border-t border-slate-100">
+                    <td className="px-3 py-2 text-slate-900">{d.name}</td>
+                    <td className="px-3 py-2 font-mono text-slate-700">{d.code}</td>
+                    <td className="px-3 py-2 text-slate-700">{d.type || '—'}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          onClick={() => {
+                            const ok = window.confirm(`Xóa khoa ${d.name}?`)
+                            if (!ok) return
+                            deleteDepartmentMut.mutate({ departmentId: d.id })
+                          }}
+                          disabled={deleteDepartmentMut.isPending}
+                        >
+                          Xóa khoa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {usersQuery.isLoading ? (
         <p className="text-sm text-slate-500">Đang tải danh sách tài khoản…</p>
