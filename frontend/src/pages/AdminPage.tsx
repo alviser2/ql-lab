@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { ApiError } from '@/lib/api'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
@@ -132,12 +133,8 @@ export function AdminPage() {
   })
 
   const deleteMut = useMutation({
-    mutationFn: ({ userId }: { userId: string }) => deleteAdminUser(userId),
-    onSuccess: async () => {
-      toast.success('Đã xóa tài khoản')
-      await refreshAll()
-    },
-    onError: (e) => toast.error(parseErrorMessage(e)),
+    mutationFn: ({ userId, force }: { userId: string; force?: boolean }) =>
+      deleteAdminUser(userId, { force }),
   })
 
   const createDepartmentMut = useMutation({
@@ -348,12 +345,37 @@ export function AdminPage() {
                       <button
                         type="button"
                         className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-                        onClick={() => {
+                        onClick={async () => {
                           const ok = window.confirm(
                             `Xóa tài khoản ${u.username}? (soft delete)`
                           )
                           if (!ok) return
-                          deleteMut.mutate({ userId: u.id })
+
+                          try {
+                            await deleteMut.mutateAsync({ userId: u.id })
+                            toast.success('Đã xóa tài khoản')
+                            await refreshAll()
+                          } catch (err) {
+                            const apiErr = err as ApiError
+                            if (apiErr?.code === 'USER_HAS_ASSIGNED_TASKS') {
+                              const taskCount = Number((apiErr.details as any)?.activeAssignedTaskCount || 0)
+                              const proceed = window.confirm(
+                                `Tài khoản này đang được giao ${taskCount} công việc chưa lưu trữ. Bạn có muốn tiếp tục xóa không?`,
+                              )
+                              if (!proceed) return
+
+                              try {
+                                await deleteMut.mutateAsync({ userId: u.id, force: true })
+                                toast.success('Đã xóa tài khoản')
+                                await refreshAll()
+                              } catch (forceErr) {
+                                toast.error(parseErrorMessage(forceErr))
+                              }
+                              return
+                            }
+
+                            toast.error(parseErrorMessage(apiErr))
+                          }
                         }}
                         disabled={deleteMut.isPending || u.id === me?.id}
                         title={u.id === me?.id ? 'Không thể tự xóa tài khoản đang đăng nhập' : undefined}

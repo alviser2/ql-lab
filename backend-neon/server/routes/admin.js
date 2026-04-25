@@ -261,6 +261,7 @@ router.delete(
   '/users/:id',
   asyncHandler(async (req, res) => {
     const targetId = req.params.id
+    const forceDelete = String(req.query.force || '').trim() === '1'
 
     if (req.userId === targetId) {
       return badRequest(res, 'SELF_DELETE_FORBIDDEN', 'Không thể tự xóa tài khoản đang đăng nhập')
@@ -299,6 +300,26 @@ router.delete(
           'Không thể xóa Giám đốc cuối cùng của hệ thống',
         )
       }
+    }
+
+    const assignedTaskRs = await query(
+      `
+      select count(*)::int as c
+      from tasks
+      where assignee_id = $1
+        and archived = false
+    `,
+      [targetId],
+    )
+    const activeAssignedTaskCount = Number(assignedTaskRs.rows[0]?.c || 0)
+
+    if (!forceDelete && activeAssignedTaskCount > 0) {
+      return badRequest(
+        res,
+        'USER_HAS_ASSIGNED_TASKS',
+        'Tài khoản này đang có công việc được giao. Bạn có muốn tiếp tục xóa?',
+        { activeAssignedTaskCount },
+      )
     }
 
     const deletedUsername = `${target.username}__deleted_${Date.now()}`

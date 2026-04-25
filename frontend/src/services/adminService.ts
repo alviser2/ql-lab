@@ -49,6 +49,7 @@ export async function updateAdminUserActive(userId: string, isActive: boolean) {
   await api.patch(`/admin/users/${userId}/active`, { is_active: isActive })
 }
 
-export async function deleteAdminUser(userId: string) {
-  await api.delete(`/admin/users/${userId}`)
+export async function deleteAdminUser(userId: string, opts?: { force?: boolean }) {
+  const suffix = opts?.force ? '?force=1' : ''
+  await api.delete(`/admin/users/${userId}${suffix}`)
 }
