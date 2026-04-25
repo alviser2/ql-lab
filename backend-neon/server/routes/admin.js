@@ -43,6 +43,7 @@ router.get(
       join roles r on u.role_id = r.id
       left join departments d on d.id = u.dept_id
       where lower(trim(u.username)) <> $1
+        and u.username not like '%__deleted_%'
       order by u.created_at desc
     `,
       [PROTECTED_BACKUP_USERNAME],
