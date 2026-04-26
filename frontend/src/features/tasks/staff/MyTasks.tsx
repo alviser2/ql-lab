@@ -11,10 +11,12 @@ export function MyTasks({
   tasks,
   usersById,
   allTasks,
+  onOpenTask,
 }: {
   tasks: Task[]
   usersById: Map<string, User>
   allTasks: Task[]
+  onOpenTask?: (task: Task) => void
 }) {
   const [detail, setDetail] = useState<Task | null>(null)
   const [reportTask, setReportTask] = useState<Task | null>(null)
@@ -64,7 +66,13 @@ export function MyTasks({
                     <button
                       type="button"
                       className="text-left font-medium text-slate-900 hover:text-medical-700"
-                      onClick={() => setDetail(t)}
+                      onClick={() => {
+                        if (onOpenTask) {
+                          onOpenTask(t)
+                          return
+                        }
+                        setDetail(t)
+                      }}
                     >
                       {t.title}
                     </button>
@@ -107,13 +115,15 @@ export function MyTasks({
         </p>
       )}
 
-      <TaskDetailDrawer
-        open={!!detail}
-        task={detail}
-        tasks={allTasks}
-        usersById={usersById}
-        onClose={() => setDetail(null)}
-      />
+      {!onOpenTask && (
+        <TaskDetailDrawer
+          open={!!detail}
+          task={detail}
+          tasks={allTasks}
+          usersById={usersById}
+          onClose={() => setDetail(null)}
+        />
+      )}
       <QuickReportModal
         open={!!reportTask}
         task={reportTask}

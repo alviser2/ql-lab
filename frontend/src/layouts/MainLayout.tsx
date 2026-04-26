@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
@@ -28,6 +28,41 @@ const navBase = [
   { to: '/kpi', label: 'KPI', icon: PieChart },
 ]
 
+type NotifyKind =
+  | 'assigned'
+  | 'pending-approval'
+  | 'due-soon'
+  | 'overdue'
+
+type NotificationItem = {
+  id: string
+  taskId: string
+  kind: NotifyKind
+  title: string
+  message: string
+  sortTs: number
+}
+
+const notifyPriority: Record<NotifyKind, number> = {
+  overdue: 4,
+  'pending-approval': 3,
+  'due-soon': 2,
+  assigned: 1,
+}
+
+function formatDateTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return 'không xác định'
+  return date.toLocaleString('vi-VN', {
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function MainLayout() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
@@ -39,6 +74,8 @@ export function MainLayout() {
   const createOpen = useUiStore((s) => s.createTaskOpen)
   const createTaskParentId = useUiStore((s) => s.createTaskParentId)
   const setCreateOpen = useUiStore((s) => s.setCreateTaskOpen)
+  const [notifyOpen, setNotifyOpen] = useState(false)
+  const notifyRef = useRef<HTMLDivElement | null>(null)
 
   const { data: tasks = [] } = useTasksQuery()
   useFakeRealtime(!!user)
@@ -53,15 +90,80 @@ export function MainLayout() {
     return navBase
   }, [user?.role])
 
-  const badge = useMemo(() => {
-    if (!user) return 0
-    const v = tasksVisibleForUser(user, tasks)
-    return v.filter(
-      (t) =>
-        t.status === 'PENDING_APPROVAL' &&
-        t.pendingApprovalReviewerId === user.id,
-    ).length
+  const notifications = useMemo(() => {
+    if (!user) return [] as NotificationItem[]
+
+    const visibleTasks = tasksVisibleForUser(user, tasks)
+    const now = Date.now()
+    const dueSoonMs = 48 * 60 * 60 * 1000
+    const items: NotificationItem[] = []
+
+    for (const task of visibleTasks) {
+      const deadlineTs = Date.parse(task.deadline)
+      const canReadDeadline = !Number.isNaN(deadlineTs)
+      const taskTitle = task.title || '(không có tiêu đề)'
+
+      if (
+        task.status === 'PENDING_APPROVAL' &&
+        task.pendingApprovalReviewerId === user.id
+      ) {
+        items.push({
+          id: `pending-approval:${task.id}`,
+          taskId: task.id,
+          kind: 'pending-approval',
+          title: 'Có báo cáo chờ bạn duyệt',
+          message: taskTitle,
+          sortTs: Date.parse(task.updatedAt) || now,
+        })
+      }
+
+      if (task.assigneeId === user.id && task.status === 'NEW') {
+        items.push({
+          id: `assigned:${task.id}`,
+          taskId: task.id,
+          kind: 'assigned',
+          title: 'Bạn vừa được giao việc',
+          message: taskTitle,
+          sortTs: Date.parse(task.updatedAt) || now,
+        })
+      }
+
+      if (
+        task.assigneeId === user.id &&
+        task.status !== 'COMPLETED' &&
+        canReadDeadline
+      ) {
+        const remain = deadlineTs - now
+        if (remain < 0) {
+          items.push({
+            id: `overdue:${task.id}`,
+            taskId: task.id,
+            kind: 'overdue',
+            title: 'Việc của bạn đã quá hạn',
+            message: `${taskTitle} · hạn ${formatDateTime(task.deadline)}`,
+            sortTs: deadlineTs,
+          })
+        } else if (remain <= dueSoonMs) {
+          items.push({
+            id: `due-soon:${task.id}`,
+            taskId: task.id,
+            kind: 'due-soon',
+            title: 'Việc của bạn sắp tới hạn',
+            message: `${taskTitle} · hạn ${formatDateTime(task.deadline)}`,
+            sortTs: deadlineTs,
+          })
+        }
+      }
+    }
+
+    return items.sort((a, b) => {
+      const p = notifyPriority[b.kind] - notifyPriority[a.kind]
+      if (p !== 0) return p
+      return b.sortTs - a.sortTs
+    })
   }, [tasks, user])
+
+  const badge = notifications.length
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -87,10 +189,30 @@ export function MainLayout() {
     }
   }, [location.pathname, setSidebarOpen])
 
+  useEffect(() => {
+    if (!notifyOpen) return
+
+    const onDocClick = (event: MouseEvent) => {
+      if (!notifyRef.current) return
+      const target = event.target as Node
+      if (!notifyRef.current.contains(target)) {
+        setNotifyOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [notifyOpen])
+
   const closeSidebarOnMobile = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       setSidebarOpen(false)
     }
+  }
+
+  const openTaskFromNotification = (taskId: string) => {
+    setNotifyOpen(false)
+    navigate(`/tasks?task=${encodeURIComponent(taskId)}`)
   }
 
   return (
@@ -183,14 +305,66 @@ export function MainLayout() {
             <Menu className="size-5" />
           </button>
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-            <span className="relative inline-flex rounded-xl bg-slate-100 p-2 text-slate-600">
-              <Bell className="size-5" />
-              {badge > 0 && (
-                <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {badge > 9 ? '9+' : badge}
-                </span>
+            <div className="relative" ref={notifyRef}>
+              <button
+                type="button"
+                onClick={() => setNotifyOpen((v) => !v)}
+                className="relative inline-flex rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
+                aria-label="Thông báo"
+              >
+                <Bell className="size-5" />
+                {badge > 0 && (
+                  <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
+              </button>
+
+              {notifyOpen && (
+                <div className="absolute right-0 top-12 z-50 w-[360px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <p className="text-sm font-semibold text-slate-900">Thông báo cá nhân</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Nhấn vào từng thông báo để mở thẳng công việc
+                    </p>
+                  </div>
+
+                  <div className="max-h-96 overflow-y-auto p-2">
+                    {notifications.length === 0 ? (
+                      <p className="rounded-xl px-3 py-4 text-center text-sm text-slate-500">
+                        Chưa có thông báo mới.
+                      </p>
+                    ) : (
+                      notifications.map((item) => {
+                        const tone =
+                          item.kind === 'overdue'
+                            ? 'border-red-200 bg-red-50/80 text-red-900'
+                            : item.kind === 'pending-approval'
+                              ? 'border-amber-200 bg-amber-50/80 text-amber-900'
+                              : item.kind === 'due-soon'
+                                ? 'border-orange-200 bg-orange-50/70 text-orange-900'
+                                : 'border-slate-200 bg-slate-50 text-slate-800'
+
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => openTaskFromNotification(item.taskId)}
+                            className={cn(
+                              'mb-2 w-full rounded-xl border px-3 py-2 text-left transition hover:opacity-90',
+                              tone,
+                            )}
+                          >
+                            <p className="text-sm font-semibold">{item.title}</p>
+                            <p className="mt-1 text-sm opacity-90">{item.message}</p>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
               )}
-            </span>
+            </div>
             {canCreateTask(user ?? null) && (
               <button
                 type="button"
