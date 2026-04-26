@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
-import { ClipboardCheck, FileText } from 'lucide-react'
+import { ClipboardCheck, FileText, GitBranchPlus } from 'lucide-react'
 import type { Task, User } from '@/types'
 import { TaskDetailDrawer } from '@/features/tasks/staff/TaskDetailDrawer'
 import { QuickReportModal } from '@/features/tasks/staff/QuickReportModal'
 import { DeadlineBadge } from '@/components/DeadlineBadge'
 import { PriorityTag } from '@/components/PriorityTag'
 import { StatusBadge } from '@/components/StatusBadge'
+import { useAuthStore } from '@/store/authStore'
+import { useUiStore } from '@/store/uiStore'
+import { canCreateTask } from '@/utils/taskHierarchy'
 
 export function MyTasks({
   tasks,
@@ -20,6 +23,8 @@ export function MyTasks({
 }) {
   const [detail, setDetail] = useState<Task | null>(null)
   const [reportTask, setReportTask] = useState<Task | null>(null)
+  const user = useAuthStore((s) => s.user)
+  const setCreateOpen = useUiStore((s) => s.setCreateTaskOpen)
 
   const activeTasks = useMemo(
     () => tasks.filter((t) => !t.archived),
@@ -53,6 +58,10 @@ export function MyTasks({
           <tbody>
             {activeTasks.map((t) => {
               const canReport = t.status === 'NEW' || t.status === 'IN_PROGRESS'
+              const canDelegate =
+                !!user &&
+                canCreateTask(user) &&
+                (t.status === 'NEW' || t.status === 'IN_PROGRESS' || t.status === 'PENDING_APPROVAL')
               const assigneeName = t.assigneeId
                 ? usersById.get(t.assigneeId)?.name || '—'
                 : '—'
@@ -88,6 +97,16 @@ export function MyTasks({
                   <td className="px-3 py-3"><DeadlineBadge deadline={t.deadline} /></td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-2">
+                      {canDelegate && (
+                        <button
+                          type="button"
+                          onClick={() => setCreateOpen(true, t.id)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-medical-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-medical-700"
+                        >
+                          <GitBranchPlus className="size-3.5" />
+                          Giao việc
+                        </button>
+                      )}
                       {canReport ? (
                         <button
                           type="button"
@@ -97,9 +116,9 @@ export function MyTasks({
                           <FileText className="size-3.5" />
                           Báo cáo
                         </button>
-                      ) : (
+                      ) : !canDelegate ? (
                         <span className="text-xs text-slate-400">—</span>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>
