@@ -75,7 +75,7 @@ export function TaskDetailDrawer({
       if (!canAssignTo(me, u)) return false
       if (me.role === 'r-director') return true
       if (me.role === 'r-dept-head') {
-        return u.departmentId === task.departmentId
+        return u.departmentId === me.departmentId
       }
       return (
         u.departmentId === task.departmentId &&

@@ -135,8 +135,13 @@ export function CreateTaskModal({
           (t.departmentId && managedDepts.has(t.departmentId)),
       )
     }
-    // Trưởng khoa: thấy việc trong khoa mình
-    return tasks.filter((t) => t.departmentId === user.departmentId)
+    // Trưởng khoa: thấy việc trong khoa mình + việc được giao trực tiếp + việc mình tạo
+    return tasks.filter(
+      (t) =>
+        t.departmentId === user.departmentId ||
+        t.assigneeId === user.id ||
+        t.createdById === user.id,
+    )
   }, [tasks, user])
 
   const parent = useMemo(
@@ -148,7 +153,14 @@ export function CreateTaskModal({
   const assignCandidates = useMemo<User[]>(() => {
     if (!user) return []
     return sortUsersByRoleThenName(
-      users.filter((u) => u.id !== user.id && canAssignTo(user, u)),
+      users.filter((u) => {
+        if (u.id === user.id) return false
+        if (!canAssignTo(user, u)) return false
+        if (user.role === 'r-dept-head') {
+          return u.departmentId === user.departmentId
+        }
+        return true
+      }),
     )
   }, [users, user])
 
