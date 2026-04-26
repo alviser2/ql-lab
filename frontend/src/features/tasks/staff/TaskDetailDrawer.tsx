@@ -26,6 +26,42 @@ const nextActions: { label: string; to: TaskStatus; from: TaskStatus[] }[] = [
   },
 ]
 
+function parseExtendedNote(note?: string | null) {
+  const result: {
+    thuongTruc?: string
+    phoiHop?: string
+    phuongPhap?: string
+    duKienKetQua?: string
+  } = {}
+
+  if (!note) return result
+
+  const parts = note
+    .split(' | ')
+    .map((p) => p.trim())
+    .filter(Boolean)
+
+  for (const part of parts) {
+    if (part.startsWith('Thường trực:')) {
+      result.thuongTruc = part.replace('Thường trực:', '').trim()
+      continue
+    }
+    if (part.startsWith('Phối hợp:')) {
+      result.phoiHop = part.replace('Phối hợp:', '').trim()
+      continue
+    }
+    if (part.startsWith('Phương pháp:')) {
+      result.phuongPhap = part.replace('Phương pháp:', '').trim()
+      continue
+    }
+    if (part.startsWith('Dự kiến kết quả:')) {
+      result.duKienKetQua = part.replace('Dự kiến kết quả:', '').trim()
+    }
+  }
+
+  return result
+}
+
 export function TaskDetailDrawer({
   open,
   task,
@@ -102,6 +138,18 @@ export function TaskDetailDrawer({
     return !canSetCompletedFromStatus(task.status) || !canMarkTaskComplete(task, tasks)
   }, [task, tasks])
 
+  const extendedNote = useMemo(() => parseExtendedNote(task?.result_note), [task?.result_note])
+  const hasExtendedNote = useMemo(
+    () =>
+      !!(
+        extendedNote.thuongTruc ||
+        extendedNote.phoiHop ||
+        extendedNote.phuongPhap ||
+        extendedNote.duKienKetQua
+      ),
+    [extendedNote],
+  )
+
   // Early return sau khi đã gọi tất cả hooks
   if (!task) return null
 
@@ -164,6 +212,38 @@ export function TaskDetailDrawer({
             <PriorityTag priority={task.priority} />
             <DeadlineBadge deadline={task.deadline} />
           </div>
+
+          {hasExtendedNote && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-sm">
+              <p className="font-semibold text-slate-900">Chỉ đạo từ cấp trên</p>
+              <div className="mt-2 space-y-2 text-slate-700">
+                {extendedNote.phuongPhap && (
+                  <p>
+                    <span className="font-medium text-slate-800">Phương pháp làm:</span>{' '}
+                    {extendedNote.phuongPhap}
+                  </p>
+                )}
+                {extendedNote.duKienKetQua && (
+                  <p>
+                    <span className="font-medium text-slate-800">Dự kiến kết quả:</span>{' '}
+                    {extendedNote.duKienKetQua}
+                  </p>
+                )}
+                {extendedNote.thuongTruc && (
+                  <p>
+                    <span className="font-medium text-slate-800">Thường trực phụ trách:</span>{' '}
+                    {extendedNote.thuongTruc}
+                  </p>
+                )}
+                {extendedNote.phoiHop && (
+                  <p>
+                    <span className="font-medium text-slate-800">Bộ phận phối hợp:</span>{' '}
+                    {extendedNote.phoiHop}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {task.lastRejectionReason && task.status === 'IN_PROGRESS' && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
