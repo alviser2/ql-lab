@@ -67,7 +67,9 @@ export function TasksPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-slate-900">Công việc</h1>
 
-      {user.role !== 'r-staff' && <ApprovalInbox tasks={visible} usersById={uMap} />}
+      {user.role !== 'r-staff' && (
+        <ApprovalInbox tasks={visible} usersById={uMap} onOpenTask={showTaskDetail} />
+      )}
 
       {user.role === 'r-staff' && (
         <MyTasks

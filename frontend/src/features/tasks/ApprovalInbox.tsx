@@ -12,9 +12,11 @@ import { PriorityTag } from '@/components/PriorityTag'
 export function ApprovalInbox({
   tasks,
   usersById,
+  onOpenTask,
 }: {
   tasks: Task[]
   usersById: Map<string, User>
+  onOpenTask?: (task: Task) => void
 }) {
   const user = useAuthStore((s) => s.user)
   const qc = useQueryClient()
@@ -101,7 +103,13 @@ export function ApprovalInbox({
               return (
                 <tr key={t.id} className="border-t border-slate-100">
                   <td className="px-3 py-3 text-slate-900">
-                    <p className="truncate font-medium">{t.title}</p>
+                    <button
+                      type="button"
+                      className="truncate text-left font-medium hover:text-medical-700"
+                      onClick={() => onOpenTask?.(t)}
+                    >
+                      {t.title}
+                    </button>
                   </td>
                   <td className="px-3 py-3 text-slate-700">{assignerName}</td>
                   <td className="px-3 py-3 text-slate-700">{assigneeName}</td>
