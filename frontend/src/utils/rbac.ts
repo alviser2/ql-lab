@@ -16,8 +16,12 @@ export function tasksVisibleForUser(
   }
 
   if (user.role === 'r-dept-head') {
-    if (!user.departmentId) return []
-    return scopedTasks.filter((t) => t.departmentId === user.departmentId)
+    return scopedTasks.filter(
+      (t) =>
+        (user.departmentId ? t.departmentId === user.departmentId : false) ||
+        t.assigneeId === user.id ||
+        t.createdById === user.id,
+    )
   }
 
   return scopedTasks.filter((t) => t.assigneeId === user.id)

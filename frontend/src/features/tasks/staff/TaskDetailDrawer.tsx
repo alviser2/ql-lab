@@ -235,7 +235,7 @@ export function TaskDetailDrawer({
 
           {assignOptions.length > 0 && (
             <label className="block text-sm font-medium text-slate-700">
-              Giao cho (khoa)
+              Giao việc cho (khoa)
               <select
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
                 value={task.assigneeId ?? ''}
@@ -263,7 +263,7 @@ export function TaskDetailDrawer({
 
           <div>
             <p className="mb-2 text-sm font-medium text-slate-700">
-              Trạng thái nhanh
+              Giao việc & trạng thái nhanh
             </p>
             <div className="flex flex-wrap gap-2">
               {nextActions.map((a) => {
