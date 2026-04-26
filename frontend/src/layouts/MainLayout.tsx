@@ -21,11 +21,11 @@ import { CreateTaskModal } from '@/features/tasks/CreateTaskModal'
 import { cn } from '@/utils/cn'
 
 const navBase = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/tasks', label: 'Tasks', icon: ClipboardList, end: true },
+  { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
+  { to: '/meetings', label: 'Giao ban', icon: Users },
+  { to: '/tasks', label: 'Công việc', icon: ClipboardList, end: true },
   { to: '/tasks/history', label: 'Lịch sử công việc', icon: ClipboardList },
   { to: '/kpi', label: 'KPI', icon: PieChart },
-  { to: '/meetings', label: 'Meetings', icon: Users },
 ]
 
 export function MainLayout() {
@@ -108,7 +108,7 @@ export function MainLayout() {
           {sidebarOpen && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Giao ban BV</p>
-              <p className="truncate text-xs text-slate-500">Task & KPI</p>
+              <p className="truncate text-xs text-slate-500">Công việc & KPI</p>
             </div>
           )}
           <button
