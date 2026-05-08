@@ -29,12 +29,12 @@ export function CreateMeetingModal({
   const departments = departmentsQuery.data ?? []
 
   const [title, setTitle] = useState(
-    'Biên bản họp giao ban lãnh đạo',
+    'Biên bản họp công việc lab',
   )
   const [documentNumber, setDocumentNumber] = useState('')
   const [documentPlace, setDocumentPlace] = useState('Hà Nội')
   const [room, setRoom] = useState(
-    'Phòng họp Hội đồng – BV Đa khoa Đức Giang',
+    'lab iBME - C7 814',
   )
   const [startAt, setStartAt] = useState(() => {
     const d = new Date()
