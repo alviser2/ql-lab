@@ -10,5 +10,7 @@ export function useTasksQuery(options?: {
     queryFn: () => taskService.getTasks(options),
     staleTime: 15_000,
     gcTime: 5 * 60_000,
+    refetchInterval: 45_000,
+    refetchIntervalInBackground: true,
   })
 }

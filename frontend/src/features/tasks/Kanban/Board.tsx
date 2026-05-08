@@ -73,7 +73,7 @@ export function KanbanBoard({
     else if (col === COL.REVIEW) nextStatus = 'PENDING_APPROVAL'
     else if (col === COL.DONE) {
       if (task.status === 'REJECTED') {
-        toast('Kéo việc bị từ chối sang Done sẽ đặt lại Hoàn thành (demo)', {
+        toast('Kéo việc bị từ chối sang Done sẽ đặt lại Hoàn thành', {
           icon: 'ℹ️',
         })
       }

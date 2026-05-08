@@ -70,7 +70,7 @@ export function QuickReportModal({
         />
       </label>
       <label className="mt-3 block text-sm font-medium text-slate-700">
-        Đính kèm (tên file demo)
+        Đính kèm (tên file)
         <input
           className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
           value={fileName}

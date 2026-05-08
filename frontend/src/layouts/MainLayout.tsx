@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Bell,
   ClipboardList,
@@ -14,11 +15,11 @@ import {
 import { useAuthStore } from '@/store/authStore'
 import { useUiStore } from '@/store/uiStore'
 import { useTasksQuery } from '@/hooks/useTasksQuery'
-import { useFakeRealtime } from '@/hooks/useFakeRealtime'
 import { tasksVisibleForUser } from '@/utils/rbac'
 import { canCreateTask } from '@/utils/taskHierarchy'
 import { CreateTaskModal } from '@/features/tasks/CreateTaskModal'
 import { cn } from '@/utils/cn'
+import * as meetingService from '@/services/meetingService'
 
 const navBase = [
   { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
@@ -29,6 +30,7 @@ const navBase = [
 ]
 
 type NotifyKind =
+  | 'meeting-invite'
   | 'assigned'
   | 'pending-approval'
   | 'due-soon'
@@ -36,14 +38,16 @@ type NotifyKind =
 
 type NotificationItem = {
   id: string
-  taskId: string
   kind: NotifyKind
   title: string
   message: string
   sortTs: number
+  taskId?: string
+  meetingId?: string
 }
 
 const notifyPriority: Record<NotifyKind, number> = {
+  'meeting-invite': 5,
   overdue: 4,
   'pending-approval': 3,
   'due-soon': 2,
@@ -78,7 +82,15 @@ export function MainLayout() {
   const notifyRef = useRef<HTMLDivElement | null>(null)
 
   const { data: tasks = [] } = useTasksQuery()
-  useFakeRealtime(!!user)
+  const meetingsQuery = useQuery({
+    queryKey: ['meetings'],
+    queryFn: meetingService.getMeetings,
+    staleTime: 15_000,
+    gcTime: 5 * 60_000,
+    refetchInterval: 45_000,
+    refetchIntervalInBackground: true,
+  })
+  const meetings = meetingsQuery.data ?? []
 
   const nav = useMemo(() => {
     if (user?.role === 'r-director') {
@@ -97,6 +109,22 @@ export function MainLayout() {
     const now = Date.now()
     const dueSoonMs = 48 * 60 * 60 * 1000
     const items: NotificationItem[] = []
+
+    for (const meeting of meetings) {
+      if (!Array.isArray(meeting.attendeeIds) || !meeting.attendeeIds.includes(user.id)) continue
+      if (meeting.createdById === user.id) continue
+
+      const meetingTs = Date.parse(meeting.startAt)
+      const createdTs = Date.parse(meeting.createdAt)
+      items.push({
+        id: `meeting-invite:${meeting.id}`,
+        meetingId: meeting.id,
+        kind: 'meeting-invite',
+        title: 'Bạn được mời tham gia lịch họp/biên bản',
+        message: `${meeting.title || '(không có tiêu đề)'} · ${formatDateTime(meeting.startAt)}`,
+        sortTs: Number.isNaN(meetingTs) ? (Number.isNaN(createdTs) ? now : createdTs) : meetingTs,
+      })
+    }
 
     for (const task of visibleTasks) {
       const deadlineTs = Date.parse(task.deadline)
@@ -161,7 +189,7 @@ export function MainLayout() {
       if (p !== 0) return p
       return b.sortTs - a.sortTs
     })
-  }, [tasks, user])
+  }, [tasks, meetings, user])
 
   const badge = notifications.length
 
@@ -210,9 +238,15 @@ export function MainLayout() {
     }
   }
 
-  const openTaskFromNotification = (taskId: string) => {
+  const openNotification = (item: NotificationItem) => {
     setNotifyOpen(false)
-    navigate(`/tasks?task=${encodeURIComponent(taskId)}`)
+    if (item.taskId) {
+      navigate(`/tasks?task=${encodeURIComponent(item.taskId)}`)
+      return
+    }
+    if (item.meetingId) {
+      navigate(`/meetings/${encodeURIComponent(item.meetingId)}`)
+    }
   }
 
   return (
@@ -325,7 +359,7 @@ export function MainLayout() {
                   <div className="border-b border-slate-100 px-4 py-3">
                     <p className="text-sm font-semibold text-slate-900">Thông báo cá nhân</p>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      Nhấn vào từng thông báo để mở thẳng công việc
+                      Nhấn vào từng thông báo để mở đúng màn hình liên quan
                     </p>
                   </div>
 
@@ -343,13 +377,15 @@ export function MainLayout() {
                               ? 'border-amber-200 bg-amber-50/80 text-amber-900'
                               : item.kind === 'due-soon'
                                 ? 'border-orange-200 bg-orange-50/70 text-orange-900'
-                                : 'border-slate-200 bg-slate-50 text-slate-800'
+                                : item.kind === 'meeting-invite'
+                                  ? 'border-blue-200 bg-blue-50/80 text-blue-900'
+                                  : 'border-slate-200 bg-slate-50 text-slate-800'
 
                         return (
                           <button
                             key={item.id}
                             type="button"
-                            onClick={() => openTaskFromNotification(item.taskId)}
+                            onClick={() => openNotification(item)}
                             className={cn(
                               'mb-2 w-full rounded-xl border px-3 py-2 text-left transition hover:opacity-90',
                               tone,
