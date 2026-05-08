@@ -9,7 +9,7 @@ const roleRank: Record<User['role'], number> = {
 
 /**
  * Cho phép giao việc xuống cấp dưới
- * Hoặc cho phép Trưởng khoa giao việc lên PGĐ/GD (báo cáo/đề xuất)
+ * Hoặc cho phép Leader dự án giao việc lên Thường trực/GD (báo cáo/đề xuất)
  */
 export function canAssignTo(assigner: User, assignee: User): boolean {
   if (assigner.id === assignee.id) return true
@@ -20,12 +20,12 @@ export function canAssignTo(assigner: User, assignee: User): boolean {
   // Giao xuống cấp dưới (rank cao hơn giao cho rank thấp hơn)
   if (assignerRank > assigneeRank) return true
   
-  // Trưởng khoa có thể giao việc lên PGĐ/GD (để báo cáo/lên cấp)
+  // Leader dự án có thể giao việc lên Thường trực/GD (để báo cáo/lên cấp)
   if (assigner.role === 'r-dept-head' && assigneeRank >= roleRank['r-vice-director']) {
     return true
   }
   
-  // PGĐ có thể giao việc lên GĐ
+  // Thường trực có thể giao việc lên Trưởng lab
   if (assigner.role === 'r-vice-director' && assignee.role === 'r-director') {
     return true
   }

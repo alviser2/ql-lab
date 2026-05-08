@@ -63,7 +63,7 @@ export function KanbanBoard({
     if (!task) return
 
     if (col === COL.DONE && task.status === 'PENDING_APPROVAL') {
-      toast.error('Việc chờ duyệt — PGĐ phải duyệt trước khi hoàn thành')
+      toast.error('Việc chờ duyệt — Thường trực phải duyệt trước khi hoàn thành')
       return
     }
 

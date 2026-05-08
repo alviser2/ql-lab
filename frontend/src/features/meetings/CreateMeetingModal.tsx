@@ -85,7 +85,7 @@ export function CreateMeetingModal({
     onError: (e: Error & { code?: string }) => {
       const code = e.code || e.message
       if (code === 'FORBIDDEN_SCHEDULE') {
-        toast.error('Chỉ Giám đốc / Phó Giám đốc được tạo lịch')
+        toast.error('Chỉ Trưởng lab / Thường trực (Key Member) được tạo lịch')
       } else if (code === 'NO_SECRETARY') {
         toast.error('Chọn thư ký phiên họp')
       } else toast.error(e.message || 'Không tạo được lịch')
@@ -176,7 +176,7 @@ export function CreateMeetingModal({
             </select>
           </label>
           <label className="block text-sm font-medium text-slate-700">
-            Thư ký (được sửa biên bản trước khi GĐ duyệt)
+            Thư ký (được sửa biên bản trước khi Trưởng lab duyệt)
             <select
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
               value={secretaryId}

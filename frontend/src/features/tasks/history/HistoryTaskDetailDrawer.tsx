@@ -62,7 +62,7 @@ export function HistoryTaskDetailDrawer({
         <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-2">
           <UserLine label="Người tạo" userName={creatorName} />
           <UserLine label="Người nhận việc" userName={assigneeName} />
-          <UserLine label="Khoa/phòng" userName={task.departmentName || task.departmentId || '—'} />
+          <UserLine label="Dự án" userName={task.departmentName || task.departmentId || '—'} />
           <UserLine label="Cuộc họp" userName={task.meetingTitle || '—'} />
         </div>
 

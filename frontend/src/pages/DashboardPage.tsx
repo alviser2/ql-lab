@@ -59,10 +59,10 @@ export function DashboardPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
-              Dashboard Giám đốc
+              Dashboard Trưởng lab
             </h1>
             <p className="text-sm text-slate-600">
-              Tổng quan KPI, điểm nóng, drill-down PGĐ / khoa
+              Tổng quan KPI, điểm nóng, drill-down Thường trực / dự án
             </p>
           </div>
           <Link
@@ -95,7 +95,7 @@ export function DashboardPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-slate-900">
-          Workspace Phó Giám đốc
+          Workspace Thường trực (Key Member)
         </h1>
         <KPIOverview tasks={visibleForKpi} />
         <ApprovalInbox tasks={visible} usersById={uMap} />
@@ -121,7 +121,7 @@ export function DashboardPage() {
   if (user.role === 'r-dept-head') {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">Điều hành khoa</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Điều hành dự án</h1>
         <KPIOverview tasks={visibleForKpi} />
         {user.departmentId && (
           <DepartmentKPI

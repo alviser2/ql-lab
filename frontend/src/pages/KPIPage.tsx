@@ -28,7 +28,7 @@ export function KPIPage() {
   }
 
   if (departmentsQuery.isError) {
-    return <p className="text-sm text-red-600">Không tải được dữ liệu khoa/phòng.</p>
+    return <p className="text-sm text-red-600">Không tải được dữ liệu dự án.</p>
   }
 
   if (user.role === 'r-staff') {
@@ -53,11 +53,11 @@ export function KPIPage() {
   if (user.role === 'r-dept-head' && user.departmentId) {
     const dept = departments.find((d) => d.id === user.departmentId)
     if (!dept) {
-      return <p className="text-sm text-red-600">Không tìm thấy khoa của tài khoản hiện tại.</p>
+      return <p className="text-sm text-red-600">Không tìm thấy dự án của tài khoản hiện tại.</p>
     }
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">KPI khoa</h1>
+        <h1 className="text-2xl font-bold text-slate-900">KPI dự án</h1>
         <KPIOverview tasks={visible} />
         <DepartmentKPI department={dept} tasks={visible} />
       </div>
@@ -70,7 +70,7 @@ export function KPIPage() {
     )
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">KPI khoa phụ trách</h1>
+        <h1 className="text-2xl font-bold text-slate-900">KPI dự án phụ trách</h1>
         <KPIOverview tasks={visible} />
         <div className="grid gap-6 lg:grid-cols-2">
           {depts.map((d) => (

@@ -80,7 +80,7 @@ export function TasksPage() {
         />
       )}
 
-      {/* Dept-head: xem việc được giao cho mình và báo cáo lên PGĐ/GĐ */}
+      {/* Dept-head: xem việc được giao cho mình và báo cáo lên Thường trực/Trưởng lab */}
       {user.role === 'r-dept-head' && (
         <MyTasks
           tasks={visible.filter((t) => t.assigneeId === user.id)}
@@ -90,7 +90,7 @@ export function TasksPage() {
         />
       )}
 
-      {/* Vice-director: xem việc được giao cho mình và báo cáo lên GĐ */}
+      {/* Vice-director: xem việc được giao cho mình và báo cáo lên Trưởng lab */}
       {user.role === 'r-vice-director' && (
         <MyTasks
           tasks={visible.filter((t) => t.assigneeId === user.id)}

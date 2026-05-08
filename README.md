@@ -1,4 +1,4 @@
-# Giao Ban Web (Split Deploy)
+# Quản Lý Lab Web (Split Deploy)
 
 Repo hiện được tối giản cho mô hình deploy tách FE/BE:
 

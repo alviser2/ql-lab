@@ -22,7 +22,7 @@ export const useAuthStore = create<AuthState>()(
       loading: true,
 
       bootstrap: async () => {
-        const token = localStorage.getItem('giao-ban-token')
+        const token = localStorage.getItem('ql-lab-token')
         if (!token) {
           set({ loading: false })
           return
@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>()(
             loading: false,
           })
         } catch {
-          localStorage.removeItem('giao-ban-token')
+          localStorage.removeItem('ql-lab-token')
           set({ loading: false })
         }
       },
@@ -46,12 +46,12 @@ export const useAuthStore = create<AuthState>()(
         set({ userId: user.id, user, loading: false }),
 
       logout: () => {
-        localStorage.removeItem('giao-ban-token')
+        localStorage.removeItem('ql-lab-token')
         set({ userId: null, user: null, token: null, loading: false })
       },
     }),
     {
-      name: 'giao-ban-auth',
+      name: 'ql-lab-auth',
       partialize: (s) => ({ userId: s.userId }),
       merge: (persisted, current) => {
         const p = persisted as Partial<AuthState>

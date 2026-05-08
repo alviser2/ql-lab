@@ -87,7 +87,7 @@ export const MINUTE_FIELD_GROUPS: {
     ],
   },
   {
-    heading: 'C. Kết luận của Chủ tọa (Giám đốc)',
+    heading: 'C. Kết luận của Chủ tọa (Trưởng lab)',
     fields: [
       {
         key: 'chairConclusionProfessional',

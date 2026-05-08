@@ -315,7 +315,7 @@ export function TaskDetailDrawer({
 
           {assignOptions.length > 0 && (
             <label className="block text-sm font-medium text-slate-700">
-              Giao việc cho (khoa)
+              Giao việc cho (dự án)
               <select
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
                 value={task.assigneeId ?? ''}

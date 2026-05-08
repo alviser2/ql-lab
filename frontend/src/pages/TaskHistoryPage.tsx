@@ -36,7 +36,7 @@ export function TaskHistoryPage() {
       <header>
         <h1 className="text-2xl font-bold text-slate-900">Lịch sử công việc</h1>
         <p className="text-sm text-slate-600">
-          Cây việc đã được Giám đốc chốt cuối cùng. Dữ liệu vẫn giữ để tính KPI.
+          Cây việc đã được Trưởng lab chốt cuối cùng. Dữ liệu vẫn giữ để tính KPI.
         </p>
       </header>
 

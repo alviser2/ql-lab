@@ -6,7 +6,7 @@ export function canCreateTask(user: User | null): boolean {
   return user.role !== 'r-staff'
 }
 
-/** Việc cha chỉ chọn từ các task đang giao cho chính mình (GĐ/PGĐ/Trưởng khoa); GĐ xem toàn bộ */
+/** Việc cha chỉ chọn từ các task đang giao cho chính mình (Trưởng lab/Thường trực/Leader dự án); Trưởng lab xem toàn bộ */
 export function eligibleParentTasks(user: User | null, tasks: Task[]): Task[] {
   if (!user || user.role === 'r-staff') return []
   if (user.role === 'r-director') return tasks

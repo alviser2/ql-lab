@@ -216,9 +216,9 @@ create index if not exists idx_meetings_date on meetings(meeting_date desc);
 
 insert into roles (id, role_name, level)
 values
-  ('r-director', 'Giám đốc', 4),
-  ('r-vice-director', 'Phó giám đốc', 3),
-  ('r-dept-head', 'Trưởng khoa', 2),
+  ('r-director', 'Trưởng lab', 4),
+  ('r-vice-director', 'Thường trực (Key Member)', 3),
+  ('r-dept-head', 'Leader dự án', 2),
   ('r-staff', 'Nhân viên', 1)
 on conflict (id) do update
 set role_name = excluded.role_name,
@@ -226,9 +226,9 @@ set role_name = excluded.role_name,
 
 insert into departments (id, name, code, type)
 values
-  ('dept-noi', 'Khoa Nội tổng hợp', 'NOI', 'LAM_SANG'),
-  ('dept-ngoai', 'Khoa Ngoại chấn thương', 'NGOAI', 'LAM_SANG'),
-  ('dept-hscc', 'Khoa Hồi sức cấp cứu', 'HSCC', 'LAM_SANG')
+  ('dept-noi', 'Dự án Nội tổng hợp', 'NOI', 'LAM_SANG'),
+  ('dept-ngoai', 'Dự án Ngoại chấn thương', 'NGOAI', 'LAM_SANG'),
+  ('dept-hscc', 'Dự án Hồi sức cấp cứu', 'HSCC', 'LAM_SANG')
 on conflict (id) do update
 set name = excluded.name,
     code = excluded.code,

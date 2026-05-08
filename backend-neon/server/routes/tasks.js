@@ -138,7 +138,7 @@ async function archiveSubtree(rootId, actorId) {
       actorId,
       'COMPLETED',
       'COMPLETED',
-      'Giám đốc chốt cây việc — chuyển lịch sử',
+      'Trưởng lab chốt cây việc — chuyển lịch sử',
     )
   }
 }
@@ -407,20 +407,20 @@ router.post(
     }
     if (!deptId) deptId = me?.dept_id || null
     if (!deptId) {
-      return badRequest(res, 'DEPARTMENT_REQUIRED', 'Không xác định được khoa/phòng cho công việc')
+      return badRequest(res, 'DEPARTMENT_REQUIRED', 'Không xác định được dự án cho công việc')
     }
 
     const managedByMe = userRole === 'r-vice-director' ? await getManagedDepts(userId) : []
 
     if (userRole === 'r-dept-head' && deptId !== me?.dept_id) {
-      return forbidden(res, 'FORBIDDEN_DEPARTMENT', 'Trưởng khoa chỉ được tạo việc trong khoa của mình')
+      return forbidden(res, 'FORBIDDEN_DEPARTMENT', 'Leader dự án chỉ được tạo việc trong dự án của mình')
     }
 
     if (userRole === 'r-vice-director' && deptId && !managedByMe.includes(deptId)) {
       return forbidden(
         res,
         'FORBIDDEN_DEPARTMENT_SCOPE',
-        'Phó giám đốc chỉ được tạo việc trong khoa được phân công',
+        'Thường trực (Key Member) chỉ được tạo việc trong dự án được phân công',
       )
     }
 
@@ -440,7 +440,7 @@ router.post(
         return forbidden(
           res,
           'ASSIGN_OUT_OF_DEPARTMENT',
-          'Trưởng khoa chỉ được giao việc trong khoa của mình',
+          'Leader dự án chỉ được giao việc trong dự án của mình',
         )
       }
     }
@@ -885,7 +885,7 @@ router.post(
         return forbidden(
           res,
           'ASSIGN_OUT_OF_DEPARTMENT',
-          'Trưởng khoa chỉ được giao việc trong khoa của mình',
+          'Leader dự án chỉ được giao việc trong dự án của mình',
         )
       }
 
@@ -894,7 +894,7 @@ router.post(
           return forbidden(
             res,
             'ASSIGN_DIFFERENT_DEPARTMENT',
-            'Người được giao cần thuộc cùng khoa với công việc',
+            'Người được giao cần thuộc cùng dự án với công việc',
           )
         }
       }
@@ -924,7 +924,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const { userRole } = req
     if (userRole !== 'r-director') {
-      return forbidden(res, 'FORBIDDEN_PURGE', 'Chỉ Giám đốc mới được dọn lịch sử công việc')
+      return forbidden(res, 'FORBIDDEN_PURGE', 'Chỉ Trưởng lab mới được dọn lịch sử công việc')
     }
 
     const task = await getTaskById(req.params.id)
@@ -951,7 +951,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const { userRole } = req
     if (userRole !== 'r-director') {
-      return forbidden(res, 'FORBIDDEN_PURGE', 'Chỉ Giám đốc mới được dọn lịch sử công việc')
+      return forbidden(res, 'FORBIDDEN_PURGE', 'Chỉ Trưởng lab mới được dọn lịch sử công việc')
     }
 
     const modeRaw = String(req.query.mode || '').trim().toLowerCase()

@@ -1,6 +1,6 @@
 import type { Department, Meeting, Task, User } from '@/types'
 
-const STORAGE_KEY = 'giao-ban-mock-db-v1'
+const STORAGE_KEY = 'ql-lab-mock-db-v1'
 
 export interface MockDatabase {
   users: User[]
@@ -23,9 +23,9 @@ const daysAgo = (n: number) => {
 }
 
 export const SEED_DEPARTMENTS: Department[] = [
-  { id: 'dept-noi', name: 'Khoa Nội tổng hợp', code: 'NOI' },
-  { id: 'dept-ngoai', name: 'Khoa Ngoại chấn thương', code: 'NGOAI' },
-  { id: 'dept-hscc', name: 'Khoa Hồi sức cấp cứu', code: 'HSCC' },
+  { id: 'dept-noi', name: 'Dự án Nội tổng hợp', code: 'NOI' },
+  { id: 'dept-ngoai', name: 'Dự án Ngoại chấn thương', code: 'NGOAI' },
+  { id: 'dept-hscc', name: 'Dự án Hồi sức cấp cứu', code: 'HSCC' },
 ]
 
 export const SEED_USERS: User[] = [
@@ -35,7 +35,7 @@ export const SEED_USERS: User[] = [
     email: 'giamdoc@bv.mock',
     role: 'r-director',
     departmentId: null,
-    title: 'Giám đốc',
+    title: 'Trưởng lab',
   },
   {
     id: 'u-vicedir',
@@ -44,7 +44,7 @@ export const SEED_USERS: User[] = [
     role: 'r-vice-director',
     departmentId: null,
     managedDepartmentIds: ['dept-noi', 'dept-ngoai'],
-    title: 'Phó Giám đốc',
+    title: 'Thường trực (Key Member)',
   },
   {
     id: 'u-head-noi',
@@ -52,7 +52,7 @@ export const SEED_USERS: User[] = [
     email: 'truongkhoa.noi@bv.mock',
     role: 'r-dept-head',
     departmentId: 'dept-noi',
-    title: 'Trưởng khoa Nội',
+    title: 'Leader dự án Nội',
   },
   {
     id: 'u-head-ngoai',
@@ -60,7 +60,7 @@ export const SEED_USERS: User[] = [
     email: 'truongkhoa.ngoai@bv.mock',
     role: 'r-dept-head',
     departmentId: 'dept-ngoai',
-    title: 'Trưởng khoa Ngoại',
+    title: 'Leader dự án Ngoại',
   },
   {
     id: 'u-staff-1',
@@ -92,7 +92,7 @@ export const SEED_TASKS: Task[] = [
   {
     id: 't-root-1',
     title: 'Chương trình cải tiến chất lượng Bệnh viện Q2',
-    description: 'Theo chỉ đạo Bộ — phân rã theo khoa',
+    description: 'Theo chỉ đạo Bộ — phân rã theo dự án',
     status: 'IN_PROGRESS',
     priority: 'HIGH',
     parentId: null,
@@ -207,7 +207,7 @@ export const SEED_TASKS: Task[] = [
   },
   {
     id: 't-done-1',
-    title: 'Cập nhật danh mục thuốc khoa Nội',
+    title: 'Cập nhật danh mục thuốc dự án Nội',
     status: 'COMPLETED',
     priority: 'LOW',
     parentId: 't-child-1',
@@ -264,7 +264,7 @@ export const SEED_TASKS: Task[] = [
   },
   {
     id: 't-vice-pending-1',
-    title: 'Hồ sơ trình PGĐ — mua sắm tập trung Q2',
+    title: 'Hồ sơ trình Thường trực — mua sắm tập trung Q2',
     status: 'PENDING_APPROVAL',
     priority: 'HIGH',
     parentId: null,
@@ -275,7 +275,7 @@ export const SEED_TASKS: Task[] = [
     assignedById: 'u-head-noi',
     pendingApprovalReviewerId: 'u-vicedir',
     approvalSource: 'vice_line',
-    lastReportSummary: 'Trình PGĐ phê duyệt phương án mua sắm.',
+    lastReportSummary: 'Trình Thường trực phê duyệt phương án mua sắm.',
     lastRejectionReason: null,
     deadline: daysFromNow(10),
     createdAt: daysAgo(2),
@@ -309,14 +309,14 @@ export const SEED_MEETINGS: Meeting[] = [
       matter:
         'Đánh giá hoạt động chuyên môn và triển khai công tác điều hành',
       adminAttendeesNote:
-        'Ban Giám đốc. Lãnh đạo các Khoa, Phòng, Đơn vị (có danh sách điểm danh kèm theo).',
+        'Ban Trưởng lab. Lãnh đạo các Dự án, Phòng, Đơn vị (có danh sách điểm danh kèm theo).',
       sectionI_leadershipShift:
         '(Thư ký nhập — Thường trực lãnh đạo: tình hình ANTT, phát sinh ca trực...)',
     },
   },
   {
     id: 'm-2',
-    title: 'Biên bản giao ban khoa Nội',
+    title: 'Biên bản họp dự án Nội',
     documentNumber: '....../BB-KNOI',
     documentPlace: 'Hà Nội',
     documentDay: 5,
@@ -324,7 +324,7 @@ export const SEED_MEETINGS: Meeting[] = [
     documentYear: 2026,
     startAt: daysFromNow(2),
     endAt: null,
-    room: 'Phòng họp khoa Nội',
+    room: 'Phòng họp dự án Nội',
     chairId: 'u-head-noi',
     secretaryId: 'u-staff-1',
     attendeeIds: ['u-staff-1', 'u-staff-2'],

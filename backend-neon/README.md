@@ -1,4 +1,4 @@
-# Giao Ban Backend (Neon/PostgreSQL)
+# Quản Lý Lab Backend (Neon/PostgreSQL)
 
 Backend mới tách riêng cho Neon, giữ API path giống frontend đang gọi:
 
@@ -46,7 +46,7 @@ Lưu ý bảo mật seed data:
 - Thêm env ở Vercel:
   - `DATABASE_URL` (**nên dùng user `app_runtime`, không dùng `neondb_owner`**)
   - `JWT_SECRET`
-  - `CORS_ORIGINS` (ví dụ domain frontend Vercel)
+  - `CORS_ORIGINS` (ví dụ: `https://qll.ibme.edu.vn`)
   - `NODE_ENV=production`
 
 `vercel.json` đã map `/api/*` về `server/index.js`.
@@ -77,4 +77,4 @@ Xem file `docs/admin-playbook.md` để có câu SQL mẫu:
 - đổi mật khẩu
 - khóa/mở user
 - đổi role
-- gán khoa cho phó giám đốc
+- gán dự án cho Thường trực (Key Member)

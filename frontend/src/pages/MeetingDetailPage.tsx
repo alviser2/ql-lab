@@ -148,7 +148,7 @@ function exportMeetingPdf(draft: Meeting, usersById: Map<string, User>) {
     <div class="line bold">V. Ý kiến thảo luận của các Lãnh đạo đơn vị</div>
     <div class="indent line">${formatBlock(draft.minutes.sectionV_unitDiscussion)}</div>
 
-    <div class="mt16 bold upper">C. KẾT LUẬN CỦA CHỦ TỌA (GIÁM ĐỐC)</div>
+    <div class="mt16 bold upper">C. KẾT LUẬN CỦA CHỦ TỌA (Trưởng lab)</div>
     <div class="line">1. Về chuyên môn: ${formatBlock(draft.minutes.chairConclusionProfessional)}</div>
     <div class="line">2. Về hậu cần, hành chính: ${formatBlock(draft.minutes.chairConclusionLogistics)}</div>
     <div class="line">3. Lưu ý theo dõi người bệnh nặng (Chăm sóc cấp I): ${formatBlock(draft.minutes.chairConclusionLevel1Care)}</div>
@@ -268,7 +268,7 @@ export function MeetingDetailPage() {
     onError: (e: Error & { code?: string }) => {
       const code = e.code || e.message
       if (code === 'FORBIDDEN_APPROVE') {
-        toast.error('Chỉ Giám đốc được duyệt chốt biên bản')
+        toast.error('Chỉ Trưởng lab được duyệt chốt biên bản')
       } else if (code === 'MEETING_ALREADY_APPROVED') {
         toast.error('Biên bản đã duyệt trước đó')
       } else {
@@ -331,7 +331,7 @@ export function MeetingDetailPage() {
           </span>
         ) : (
           <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-950">
-            Nháp — chờ thư ký hoàn thiện & Giám đốc duyệt
+            Nháp — chờ thư ký hoàn thiện & Trưởng lab duyệt
           </span>
         )}
       </div>
@@ -523,7 +523,7 @@ export function MeetingDetailPage() {
       {draft.status === 'approved' && draft.approvedAt && (
         <p className="text-center text-xs text-slate-500">
           Duyệt lúc {new Date(draft.approvedAt).toLocaleString('vi-VN')} bởi{' '}
-          {uMap.get(draft.approvedById ?? '')?.name ?? 'Giám đốc'}
+          {uMap.get(draft.approvedById ?? '')?.name ?? 'Trưởng lab'}
         </p>
       )}
 
@@ -569,7 +569,7 @@ export function MeetingDetailPage() {
             className="inline-flex items-center gap-2 rounded-xl bg-teal-800 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-teal-900 disabled:opacity-50"
           >
             <ShieldCheck className="size-4" />
-            Giám đốc duyệt & khóa
+            Trưởng lab duyệt & khóa
           </button>
         )}
       </div>

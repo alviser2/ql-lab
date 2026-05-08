@@ -297,7 +297,7 @@ router.delete(
         return badRequest(
           res,
           'LAST_DIRECTOR_FORBIDDEN',
-          'Không thể xóa Giám đốc cuối cùng của hệ thống',
+          'Không thể xóa Trưởng lab cuối cùng của hệ thống',
         )
       }
     }

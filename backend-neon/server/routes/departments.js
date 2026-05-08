@@ -39,7 +39,7 @@ router.post(
 
     const existed = await query('select id from departments where code = $1 limit 1', [normalizedCode])
     if (existed.rowCount > 0) {
-      return badRequest(res, 'DEPARTMENT_CODE_EXISTS', 'Mã khoa đã tồn tại')
+      return badRequest(res, 'DEPARTMENT_CODE_EXISTS', 'Mã dự án đã tồn tại')
     }
 
     const id = `dept-${normalizedCode.toLowerCase().replace(/[^a-z0-9]+/g, '-') || genId('dept')}`
@@ -72,7 +72,7 @@ router.delete(
       [departmentId],
     )
     if (existing.rowCount === 0) {
-      return notFound(res, 'DEPARTMENT_NOT_FOUND', 'Không tìm thấy khoa')
+      return notFound(res, 'DEPARTMENT_NOT_FOUND', 'Không tìm thấy dự án')
     }
 
     const usageRs = await query(
@@ -99,7 +99,7 @@ router.delete(
       return badRequest(
         res,
         'DEPARTMENT_IN_USE',
-        'Không thể xóa khoa đang có dữ liệu liên quan',
+        'Không thể xóa dự án đang có dữ liệu liên quan',
         {
           usersCount,
           tasksCount,

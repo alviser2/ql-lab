@@ -1,4 +1,4 @@
-# Giao Ban Frontend (React + Vite)
+# Quản Lý Lab Frontend (React + Vite)
 
 ## Local dev
 
@@ -25,4 +25,4 @@ npm run preview
 - Framework preset: **Vite**
 - Root Directory: `frontend`
 - Env var production:
-  - `VITE_API_BASE_URL=https://<your-backend-domain>/api`
+  - `VITE_API_BASE_URL=https://qll.ibme.edu.vn/api`

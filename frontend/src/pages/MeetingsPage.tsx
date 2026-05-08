@@ -49,9 +49,9 @@ export function MeetingsPage() {
         )}
       </div>
       <p className="text-sm text-slate-600">
-        Chỉ <strong>Giám đốc</strong> và <strong>Phó Giám đốc</strong> tạo lịch.
+        Chỉ <strong>Trưởng lab</strong> và <strong>Thường trực (Key Member)</strong> tạo lịch.
         <strong> Thư ký</strong> được sửa biên bản khi trạng thái{' '}
-        <em>nháp</em>; sau khi <strong>Giám đốc duyệt</strong> thì khóa chỉnh
+        <em>nháp</em>; sau khi <strong>Trưởng lab duyệt</strong> thì khóa chỉnh
         sửa.
       </p>
       {(q.isLoading || usersQuery.isLoading) && (

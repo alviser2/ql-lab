@@ -29,7 +29,7 @@ Base URL: `https://<backend-domain>/api/admin`
 }
 ```
 
-Nếu là phó giám đốc:
+Nếu là Thường trực (Key Member):
 
 ```json
 {
@@ -62,7 +62,7 @@ Nếu là phó giám đốc:
 }
 ```
 
-Đổi thành phó giám đốc + gán khoa phụ trách:
+Đổi thành Thường trực (Key Member) + gán dự án phụ trách:
 
 ```json
 {
@@ -125,7 +125,7 @@ set role_id = 'r-dept-head',
 where id = 'u_custom_01';
 ```
 
-## 2.4 Gán khoa cho phó giám đốc
+## 2.4 Gán dự án cho Thường trực (Key Member)
 
 ```sql
 insert into vice_director_departments (vice_director_id, department_id)

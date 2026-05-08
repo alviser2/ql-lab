@@ -211,7 +211,7 @@ router.post(
     const { userId, userRole } = req
 
     if (userRole !== 'r-director' && userRole !== 'r-vice-director') {
-      return forbidden(res, 'FORBIDDEN_SCHEDULE', 'Chỉ Giám đốc/Phó Giám đốc được tạo lịch')
+      return forbidden(res, 'FORBIDDEN_SCHEDULE', 'Chỉ Trưởng lab/Thường trực (Key Member) được tạo lịch')
     }
 
     const {
@@ -245,7 +245,7 @@ router.post(
         return forbidden(
           res,
           'FORBIDDEN_MEETING_DEPARTMENT_SCOPE',
-          'Phó giám đốc chỉ được tạo lịch cho khoa phụ trách hoặc toàn viện',
+          'Thường trực (Key Member) chỉ được tạo lịch cho dự án phụ trách hoặc toàn viện',
         )
       }
     }
@@ -354,7 +354,7 @@ router.patch(
         return forbidden(
           res,
           'FORBIDDEN_MEETING_DEPARTMENT_SCOPE',
-          'Phó giám đốc chỉ được thao tác với khoa phụ trách hoặc toàn viện',
+          'Thường trực (Key Member) chỉ được thao tác với dự án phụ trách hoặc toàn viện',
         )
       }
     }
@@ -452,7 +452,7 @@ router.post(
     if (!meeting) return notFound(res, 'MEETING_NOT_FOUND', 'Không tìm thấy cuộc họp')
 
     if (userRole !== 'r-director') {
-      return forbidden(res, 'FORBIDDEN_APPROVE', 'Chỉ Giám đốc được duyệt biên bản')
+      return forbidden(res, 'FORBIDDEN_APPROVE', 'Chỉ Trưởng lab được duyệt biên bản')
     }
 
     if (meeting.status === 'approved') {

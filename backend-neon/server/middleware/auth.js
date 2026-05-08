@@ -8,7 +8,7 @@ if (isProduction && !configuredSecret) {
   throw new Error('JWT_SECRET is required in production')
 }
 
-export const JWT_SECRET = configuredSecret || 'giao-ban-secret-key-2026'
+export const JWT_SECRET = configuredSecret || 'ql-lab-secret-key-2026'
 
 export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization

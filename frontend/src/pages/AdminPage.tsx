@@ -19,9 +19,9 @@ import type { AdminUser } from '@/types/admin'
 import { sortAdminUsersByRoleThenName } from '@/utils/userSort'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
-  { value: 'r-director', label: 'Giám đốc' },
-  { value: 'r-vice-director', label: 'Phó giám đốc' },
-  { value: 'r-dept-head', label: 'Trưởng khoa' },
+  { value: 'r-director', label: 'Trưởng lab' },
+  { value: 'r-vice-director', label: 'Thường trực (Key Member)' },
+  { value: 'r-dept-head', label: 'Leader dự án' },
   { value: 'r-staff', label: 'Nhân viên' },
 ]
 
@@ -140,7 +140,7 @@ export function AdminPage() {
   const createDepartmentMut = useMutation({
     mutationFn: createDepartment,
     onSuccess: async () => {
-      toast.success('Đã tạo khoa mới')
+      toast.success('Đã tạo dự án mới')
       setCreateDepartmentOpen(false)
       setNewDepartmentName('')
       setNewDepartmentCode('')
@@ -153,7 +153,7 @@ export function AdminPage() {
   const deleteDepartmentMut = useMutation({
     mutationFn: ({ departmentId }: { departmentId: string }) => deleteDepartment(departmentId),
     onSuccess: async () => {
-      toast.success('Đã xóa khoa')
+      toast.success('Đã xóa dự án')
       await refreshAll()
     },
     onError: (e) => toast.error(parseErrorMessage(e)),
@@ -175,7 +175,7 @@ export function AdminPage() {
   if (!isDirector) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800">
-        Chỉ Giám đốc mới có quyền vào trang quản trị tài khoản.
+        Chỉ Trưởng lab mới có quyền vào trang quản trị tài khoản.
       </div>
     )
   }
@@ -190,7 +190,7 @@ export function AdminPage() {
             onClick={() => setCreateDepartmentOpen(true)}
             className="rounded-xl border border-medical-300 bg-white px-4 py-2 text-sm font-semibold text-medical-700 hover:bg-medical-50"
           >
-            + Tạo khoa
+            + Tạo dự án
           </button>
           <button
             type="button"
@@ -203,28 +203,28 @@ export function AdminPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Trang này cho phép tạo/xóa khoa, tạo user, đổi mật khẩu, đổi role/phân cấp, khóa/mở và xóa tài khoản.
+        Trang này cho phép tạo/xóa dự án, tạo user, đổi mật khẩu, đổi role/phân cấp, khóa/mở và xóa tài khoản.
       </p>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-slate-900">Quản lý khoa</h2>
-          <span className="text-xs text-slate-500">Tổng: {departments.length} khoa</span>
+          <h2 className="text-base font-semibold text-slate-900">Quản lý dự án</h2>
+          <span className="text-xs text-slate-500">Tổng: {departments.length} dự án</span>
         </div>
 
         {departmentsQuery.isLoading ? (
-          <p className="text-sm text-slate-500">Đang tải danh sách khoa…</p>
+          <p className="text-sm text-slate-500">Đang tải danh sách dự án…</p>
         ) : departmentsQuery.isError ? (
-          <p className="text-sm text-red-600">Không tải được danh sách khoa.</p>
+          <p className="text-sm text-red-600">Không tải được danh sách dự án.</p>
         ) : departments.length === 0 ? (
-          <p className="text-sm text-slate-500">Chưa có khoa nào.</p>
+          <p className="text-sm text-slate-500">Chưa có dự án nào.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[720px] w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Tên khoa</th>
-                  <th className="px-3 py-2 text-left font-semibold">Mã khoa</th>
+                  <th className="px-3 py-2 text-left font-semibold">Tên dự án</th>
+                  <th className="px-3 py-2 text-left font-semibold">Mã dự án</th>
                   <th className="px-3 py-2 text-left font-semibold">Loại</th>
                   <th className="px-3 py-2 text-right font-semibold">Thao tác</th>
                 </tr>
@@ -241,13 +241,13 @@ export function AdminPage() {
                           type="button"
                           className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                           onClick={() => {
-                            const ok = window.confirm(`Xóa khoa ${d.name}?`)
+                            const ok = window.confirm(`Xóa dự án ${d.name}?`)
                             if (!ok) return
                             deleteDepartmentMut.mutate({ departmentId: d.id })
                           }}
                           disabled={deleteDepartmentMut.isPending}
                         >
-                          Xóa khoa
+                          Xóa dự án
                         </button>
                       </div>
                     </td>
@@ -271,8 +271,8 @@ export function AdminPage() {
                 <th className="px-3 py-2 text-left font-semibold">Username</th>
                 <th className="px-3 py-2 text-left font-semibold">Họ tên</th>
                 <th className="px-3 py-2 text-left font-semibold">Role</th>
-                <th className="px-3 py-2 text-left font-semibold">Khoa</th>
-                <th className="px-3 py-2 text-left font-semibold">Khoa phụ trách (PGĐ)</th>
+                <th className="px-3 py-2 text-left font-semibold">Dự án</th>
+                <th className="px-3 py-2 text-left font-semibold">Dự án phụ trách (Thường trực)</th>
                 <th className="px-3 py-2 text-left font-semibold">Trạng thái</th>
                 <th className="px-3 py-2 text-right font-semibold">Thao tác</th>
               </tr>
@@ -391,7 +391,7 @@ export function AdminPage() {
         </div>
       )}
 
-      <Modal open={createDepartmentOpen} onClose={() => setCreateDepartmentOpen(false)} title="Tạo khoa mới" size="md">
+      <Modal open={createDepartmentOpen} onClose={() => setCreateDepartmentOpen(false)} title="Tạo dự án mới" size="md">
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -404,7 +404,7 @@ export function AdminPage() {
           }}
         >
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">Tên khoa</span>
+            <span className="mb-1 block font-medium text-slate-700">Tên dự án</span>
             <input
               className="w-full rounded-xl border border-slate-200 px-3 py-2"
               value={newDepartmentName}
@@ -414,7 +414,7 @@ export function AdminPage() {
           </label>
 
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">Mã khoa</span>
+            <span className="mb-1 block font-medium text-slate-700">Mã dự án</span>
             <input
               className="w-full rounded-xl border border-slate-200 px-3 py-2 uppercase"
               value={newDepartmentCode}
@@ -424,7 +424,7 @@ export function AdminPage() {
           </label>
 
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">Loại khoa</span>
+            <span className="mb-1 block font-medium text-slate-700">Loại dự án</span>
             <select
               className="w-full rounded-xl border border-slate-200 px-3 py-2"
               value={newDepartmentType}
@@ -449,7 +449,7 @@ export function AdminPage() {
               className="rounded-xl bg-medical-600 px-4 py-2 text-sm font-semibold text-white hover:bg-medical-700 disabled:opacity-50"
               disabled={createDepartmentMut.isPending}
             >
-              {createDepartmentMut.isPending ? 'Đang tạo...' : 'Tạo khoa'}
+              {createDepartmentMut.isPending ? 'Đang tạo...' : 'Tạo dự án'}
             </button>
           </div>
         </form>
@@ -525,14 +525,14 @@ export function AdminPage() {
 
           {(roleId === 'r-dept-head' || roleId === 'r-staff') && (
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Khoa</span>
+              <span className="mb-1 block font-medium text-slate-700">Dự án</span>
               <select
                 className="w-full rounded-xl border border-slate-200 px-3 py-2"
                 value={deptId}
                 onChange={(e) => setDeptId(e.target.value)}
                 required
               >
-                <option value="">-- Chọn khoa --</option>
+                <option value="">-- Chọn dự án --</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
@@ -544,7 +544,7 @@ export function AdminPage() {
 
           {roleId === 'r-vice-director' && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700">Khoa phụ trách</p>
+              <p className="text-sm font-medium text-slate-700">Dự án phụ trách</p>
               <div className="grid gap-2 md:grid-cols-2">
                 {departments.map((d) => {
                   const checked = managedDeptIds.includes(d.id)
@@ -674,14 +674,14 @@ export function AdminPage() {
 
           {(editRoleId === 'r-dept-head' || editRoleId === 'r-staff') && (
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Khoa</span>
+              <span className="mb-1 block font-medium text-slate-700">Dự án</span>
               <select
                 className="w-full rounded-xl border border-slate-200 px-3 py-2"
                 value={editDeptId}
                 onChange={(e) => setEditDeptId(e.target.value)}
                 required
               >
-                <option value="">-- Chọn khoa --</option>
+                <option value="">-- Chọn dự án --</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
@@ -693,7 +693,7 @@ export function AdminPage() {
 
           {editRoleId === 'r-vice-director' && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700">Khoa phụ trách</p>
+              <p className="text-sm font-medium text-slate-700">Dự án phụ trách</p>
               <div className="grid gap-2 md:grid-cols-2">
                 {departments.map((d) => {
                   const checked = editManagedDeptIds.includes(d.id)

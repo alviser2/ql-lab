@@ -1,6 +1,6 @@
 import type { Meeting, User } from '@/types'
 
-/** Chỉ Giám đốc & Phó Giám đốc được tạo lịch giao ban */
+/** Chỉ Trưởng lab & Thường trực (Key Member) được tạo lịch giao ban */
 export function canScheduleMeeting(user: User): boolean {
   return user.role === 'r-director' || user.role === 'r-vice-director'
 }
@@ -14,16 +14,16 @@ export function canEditMeetingDraft(user: User, meeting: Meeting): boolean {
   return user.id === meeting.secretaryId
 }
 
-/** Chỉ Giám đốc duyệt chốt biên bản */
+/** Chỉ Trưởng lab duyệt chốt biên bản */
 export function canApproveMeeting(user: User, meeting: Meeting): boolean {
   return user.role === 'r-director' && meeting.status === 'draft'
 }
 
 /**
  * Ai được xem cuộc họp.
- * - GĐ: xem tất cả
- * - PGĐ: xem họp toàn viện, hoặc khoa mình giám sát, hoặc có trong ds tham dự
- * - TK: xem khoa mình, hoặc có trong ds tham dự
+ * - Trưởng lab: xem tất cả
+ * - Thường trực: xem họp toàn viện, hoặc dự án mình giám sát, hoặc có trong ds tham dự
+ * - TK: xem dự án mình, hoặc có trong ds tham dự
  * - NV: chỉ xem nếu là thư ký / chủ trì / có trong ds tham dự
  */
 export function meetingVisibleToUser(user: User, m: Meeting): boolean {
@@ -34,7 +34,7 @@ export function meetingVisibleToUser(user: User, m: Meeting): boolean {
   if (user.role === 'r-vice-director') {
     // Toàn viện
     if (m.departmentId == null) return true
-    // Trong khoa PGĐ giám sát
+    // Trong dự án Thường trực giám sát
     if (user.managedDepartmentIds?.includes(m.departmentId)) return true
     // Người tham gia
     if (m.createdById === user.id) return true

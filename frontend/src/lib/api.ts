@@ -24,7 +24,7 @@ const api = axios.create({
 
 // Attach JWT token from localStorage
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('giao-ban-token')
+  const token = localStorage.getItem('ql-lab-token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -62,8 +62,8 @@ api.interceptors.response.use(
   (rawErr: unknown) => {
     const axiosErr = rawErr as AxiosError
     if (axiosErr.response?.status === 401) {
-      localStorage.removeItem('giao-ban-token')
-      localStorage.removeItem('giao-ban-auth')
+      localStorage.removeItem('ql-lab-token')
+      localStorage.removeItem('ql-lab-auth')
       window.location.href = '/login'
     }
     return Promise.reject(toApiError(rawErr))

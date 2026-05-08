@@ -31,7 +31,7 @@ export function DepartmentBarChart({
   return (
     <div className="h-[300px] w-full rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
       <h3 className="mb-2 text-sm font-semibold text-slate-900">
-        Theo khoa — tổng việc & hoàn thành
+        Theo dự án — tổng việc & hoàn thành
       </h3>
       <ResponsiveContainer width="100%" height="88%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>

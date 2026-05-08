@@ -229,7 +229,7 @@ export function MainLayout() {
           </span>
           {sidebarOpen && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">Giao ban BV</p>
+              <p className="truncate text-sm font-semibold">Quản lý Lab</p>
               <p className="truncate text-xs text-slate-500">Công việc & KPI</p>
             </div>
           )}

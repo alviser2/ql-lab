@@ -27,7 +27,7 @@ export function LoginPage() {
     try {
       const res = await api.post('/auth/login', { username, password })
       const { token, user: userData } = res.data
-      localStorage.setItem('giao-ban-token', token)
+      localStorage.setItem('ql-lab-token', token)
       setUser(userData)
       navigate('/', { replace: true })
     } catch (err: any) {
@@ -45,7 +45,7 @@ export function LoginPage() {
             <Building2 className="size-7" />
           </span>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Giao ban Bệnh viện</h1>
+            <h1 className="text-xl font-bold text-slate-900">Quản lý Lab</h1>
             <p className="text-sm text-slate-600">Đăng nhập để tiếp tục</p>
           </div>
         </div>

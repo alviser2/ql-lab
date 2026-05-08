@@ -87,9 +87,9 @@ export function CreateTaskModal({
   })
 
   // ── hierarchy fields ─────────────────────────────────────
-  /** Khoa chính phụ trách */
+  /** Dự án chính phụ trách */
   const [departmentId, setDepartmentId] = useState(user?.departmentId ?? '')
-  /** Người được giao (PGĐ / Trưởng khoa / NV) */
+  /** Người được giao (Thường trực / Leader dự án / NV) */
   const [assigneeId, setAssigneeId] = useState<string | null>(null)
   /** Thường trực phụ trách */
   const [thuongTrucId, setThuongTrucId] = useState<string | null>(null)
@@ -126,7 +126,7 @@ export function CreateTaskModal({
     if (!user || user.role === 'r-staff') return []
     if (user.role === 'r-director') return tasks
     if (user.role === 'r-vice-director') {
-      // PGĐ thấy: việc được giao cho mình, việc trong khoa mình giám sát, hoặc việc mình giám sát
+      // Thường trực thấy: việc được giao cho mình, việc trong dự án mình giám sát, hoặc việc mình giám sát
       const managedDepts = new Set(user.managedDepartmentIds ?? [])
       return tasks.filter(
         (t) =>
@@ -135,7 +135,7 @@ export function CreateTaskModal({
           (t.departmentId && managedDepts.has(t.departmentId)),
       )
     }
-    // Trưởng khoa: thấy việc trong khoa mình + việc được giao trực tiếp + việc mình tạo
+    // Leader dự án: thấy việc trong dự án mình + việc được giao trực tiếp + việc mình tạo
     return tasks.filter(
       (t) =>
         t.departmentId === user.departmentId ||
@@ -261,8 +261,8 @@ export function CreateTaskModal({
   // ── role label ───────────────────────────────────────────
   const assigneeLabel = (() => {
     if (!user) return 'Giao cho'
-    if (user.role === 'r-director') return 'PGĐ phụ trách'
-    if (user.role === 'r-vice-director') return 'Trưởng khoa nhận việc'
+    if (user.role === 'r-director') return 'Thường trực phụ trách'
+    if (user.role === 'r-vice-director') return 'Leader dự án nhận việc'
     return 'Nhân viên phụ trách'
   })()
 
@@ -277,7 +277,7 @@ export function CreateTaskModal({
   if (usersQuery.isError || departmentsQuery.isError) {
     return (
       <Modal open={open} onClose={onClose} title="Tạo công việc" size="sm">
-        <p className="text-sm text-red-600">Không tải được dữ liệu người dùng/khoa phòng.</p>
+        <p className="text-sm text-red-600">Không tải được dữ liệu người dùng/dự án.</p>
       </Modal>
     )
   }
@@ -289,15 +289,15 @@ export function CreateTaskModal({
         <p className="rounded-lg bg-medical-50 p-2.5 text-xs text-medical-900 ring-1 ring-medical-100">
           Việc cha chỉ chọn từ các công việc{' '}
           <strong>đang giao cho bạn</strong>{' '}
-          (trừ Giám đốc: xem toàn bộ). Bạn đang tạo với vai trò{' '}
+          (trừ Trưởng lab: xem toàn bộ). Bạn đang tạo với vai trò{' '}
           <strong>
             {user?.title ??
               (user?.role === 'r-director'
-                ? 'Giám đốc'
+                ? 'Trưởng lab'
                 : user?.role === 'r-vice-director'
-                  ? 'Phó Giám đốc'
+                  ? 'Thường trực (Key Member)'
                   : user?.role === 'r-dept-head'
-                    ? 'Trưởng khoa'
+                    ? 'Leader dự án'
                     : 'Nhân viên')}
           </strong>
           .
@@ -379,14 +379,14 @@ export function CreateTaskModal({
           <SectionTitle>B. Phân công thực hiện</SectionTitle>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {/* Khoa chính */}
-            <FieldLabel label="Khoa chính phụ trách" required>
+            {/* Dự án chính */}
+            <FieldLabel label="Dự án chính phụ trách" required>
               <select
                 className={selectCls}
                 value={departmentId}
                 onChange={(e) => {
                   setDepartmentId(e.target.value)
-                  // clear phối hợp nếu chọn khoa mới
+                  // clear phối hợp nếu chọn dự án mới
                   setBoPhanPhoiHopIds((prev) =>
                     prev.filter((id) => id !== e.target.value),
                   )
@@ -400,7 +400,7 @@ export function CreateTaskModal({
               </select>
             </FieldLabel>
 
-            {/* Người được giao (PGĐ / TK / NV) */}
+            {/* Người được giao (Thường trực / TK / NV) */}
             <FieldLabel label={assigneeLabel}>
               <select
                 className={cn(
@@ -477,7 +477,7 @@ export function CreateTaskModal({
               {departments.filter((d) => d.id !== departmentId).length ===
                 0 && (
                 <span className="text-xs text-slate-400">
-                  Không có khoa khác để chọn.
+                  Không có dự án khác để chọn.
                 </span>
               )}
             </div>
