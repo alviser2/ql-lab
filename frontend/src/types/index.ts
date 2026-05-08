@@ -26,7 +26,7 @@ export interface Department {
   id: string
   name: string
   code: string
-  type?: 'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH'
+  type?: string
 }
 
 export interface Task {

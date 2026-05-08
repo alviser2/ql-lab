@@ -4,7 +4,7 @@ import type { Department } from '@/types'
 export interface CreateDepartmentInput {
   name: string
   code: string
-  type?: 'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH'
+  type?: string
 }
 
 function normalizeDepartment(d: any): Department {

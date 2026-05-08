@@ -4,6 +4,16 @@ import { authenticate, requireRole } from '../middleware/auth.js'
 import { asyncHandler } from '../lib/async.js'
 import { badRequest, notFound } from '../lib/http.js'
 
+function toTitleCase(input) {
+  return input
+    .trim()
+    .toLocaleLowerCase('vi-VN')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toLocaleUpperCase('vi-VN') + word.slice(1))
+    .join(' ')
+}
+
 const router = Router()
 
 router.get(
@@ -30,12 +40,8 @@ router.post(
 
     const normalizedCode = String(code).trim().toUpperCase()
     const normalizedName = String(name).trim()
-    const normalizedType = type ? String(type).trim().toUpperCase() : null
-
-    const allowedTypes = ['LAM_SANG', 'CAN_LAM_SANG', 'HANH_CHINH']
-    if (normalizedType && !allowedTypes.includes(normalizedType)) {
-      return badRequest(res, 'DEPARTMENT_TYPE_INVALID', 'type không hợp lệ')
-    }
+    const normalizedTypeRaw = type ? String(type).trim() : ''
+    const normalizedType = normalizedTypeRaw ? toTitleCase(normalizedTypeRaw) : null
 
     const existed = await query('select id from departments where code = $1 limit 1', [normalizedCode])
     if (existed.rowCount > 0) {

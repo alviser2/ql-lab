@@ -58,7 +58,8 @@ export function AdminPage() {
 
   const [newDepartmentName, setNewDepartmentName] = useState('')
   const [newDepartmentCode, setNewDepartmentCode] = useState('')
-  const [newDepartmentType, setNewDepartmentType] = useState<'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH'>('LAM_SANG')
+  const [newDepartmentTypePreset, setNewDepartmentTypePreset] = useState<'ngan_han' | 'dai_han' | 'custom'>('ngan_han')
+  const [newDepartmentTypeCustom, setNewDepartmentTypeCustom] = useState('')
 
   const [editRoleId, setEditRoleId] = useState<Role>('r-staff')
   const [editDeptId, setEditDeptId] = useState<string>('')
@@ -144,7 +145,8 @@ export function AdminPage() {
       setCreateDepartmentOpen(false)
       setNewDepartmentName('')
       setNewDepartmentCode('')
-      setNewDepartmentType('LAM_SANG')
+      setNewDepartmentTypePreset('ngan_han')
+      setNewDepartmentTypeCustom('')
       await refreshAll()
     },
     onError: (e) => toast.error(parseErrorMessage(e)),
@@ -396,10 +398,23 @@ export function AdminPage() {
           className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault()
+            const customType = newDepartmentTypeCustom.trim()
+            const resolvedType =
+              newDepartmentTypePreset === 'ngan_han'
+                ? 'ngắn hạn'
+                : newDepartmentTypePreset === 'dai_han'
+                  ? 'dài hạn'
+                  : customType
+
+            if (!resolvedType) {
+              toast.error('Nhập loại dự án custom')
+              return
+            }
+
             createDepartmentMut.mutate({
               name: newDepartmentName.trim(),
               code: newDepartmentCode.trim().toUpperCase(),
-              type: newDepartmentType,
+              type: resolvedType,
             })
           }}
         >
@@ -425,15 +440,27 @@ export function AdminPage() {
 
           <label className="block text-sm">
             <span className="mb-1 block font-medium text-slate-700">Loại dự án</span>
-            <select
-              className="w-full rounded-xl border border-slate-200 px-3 py-2"
-              value={newDepartmentType}
-              onChange={(e) => setNewDepartmentType(e.target.value as 'LAM_SANG' | 'CAN_LAM_SANG' | 'HANH_CHINH')}
-            >
-              <option value="LAM_SANG">Lâm sàng</option>
-              <option value="CAN_LAM_SANG">Cận lâm sàng</option>
-              <option value="HANH_CHINH">Hành chính</option>
-            </select>
+            <div className="space-y-2">
+              <select
+                className="w-full rounded-xl border border-slate-200 px-3 py-2"
+                value={newDepartmentTypePreset}
+                onChange={(e) => setNewDepartmentTypePreset(e.target.value as 'ngan_han' | 'dai_han' | 'custom')}
+              >
+                <option value="ngan_han">Ngắn hạn</option>
+                <option value="dai_han">Dài hạn</option>
+                <option value="custom">Khác (custom)</option>
+              </select>
+
+              {newDepartmentTypePreset === 'custom' && (
+                <input
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2"
+                  value={newDepartmentTypeCustom}
+                  onChange={(e) => setNewDepartmentTypeCustom(e.target.value)}
+                  placeholder="Ví dụ: Trung hạn"
+                  required
+                />
+              )}
+            </div>
           </label>
 
           <div className="mt-4 flex justify-end gap-2">
